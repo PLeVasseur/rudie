@@ -1,0 +1,6 @@
+[package]
+name = "rudie"
+version = "0.1.0"
+authors = ["Peter LeVasseur <plevasseur@gmail.com>"]
+
+[dependencies]
