@@ -1,49 +1,70 @@
-#![no_std]
+#![feature(const_fn)]
 #![feature(proc_macro)]
+#![feature(unsize)]
+#![no_std]
 
 extern crate mat;
 extern crate typenum;
+extern crate generic_array;
 
-use mat::Mat;
+use mat::{Mat, MatGen};
 use mat::mat;
 use mat::traits::{Matrix, Zero};
-use typenum::{UTerm, Unsigned, UInt, U1, U2};
+use typenum::{Unsigned, U0, U1, U2, Sum};
+use generic_array::{GenericArray, ArrayLength, arr, arr_impl};
+use core::default;
 
-//pub trait Zero<T> {
-//    fn zero() -> T;
-//}
-//
-//impl Zero<f32> for f32 {
-//    fn zero() -> f32 {
-//        0.0
-//    }
-//}
+// cannot make this const, because to_usize() is not const
+// to_usize() cannot be made const, because trait functions cannot be const
+fn get_concrete_usize<T: Unsigned>() -> usize
+{
+    T::to_usize()
+}
 
-//struct KalmanFilterCV<T, DP, MP, CP>
 #[derive(Clone)]
-pub struct KalmanFilterCV<T, DP>
-where
-    T: Copy + Zero,
-    DP: Unsigned,
+pub struct KalmanFilterMat<T, DP>
+    where
+        T: Copy + Zero + Default,
+        DP: Unsigned,
 //    MP: Unsigned,
 //    CP: Unsigned
 {
-    state_pre: Mat<T, [T; DP], DP, U1>
+    state_pre: Mat<T, [T; 1], DP, U1>
 }
 
-impl<T, DP> KalmanFilterCV<T, DP>
-where
-    T: Copy + Zero,
-    DP: Unsigned
+impl<T, DP> KalmanFilterMat<T, DP>
+    where
+        T: Copy + Zero + Default,
+        DP: Unsigned,
 {
-    fn init() -> KalmanFilterCV<T, DP> {
-        KalmanFilterCV {
-            state_pre: unsafe {
-                Mat::new([T::zero(); DP::to_usize()])
+    fn init() -> KalmanFilterMat<T, DP> {
+            // how to initialize
+    }
+}
+
+#[derive(Clone)]
+pub struct KalmanFilterMatGen<T, DP>
+    where
+        T: Copy + Zero + Default,
+        DP: ArrayLength<T>,
+//    MP: Unsigned,
+//    CP: Unsigned
+{
+    state_pre: MatGen<T, DP, U1>,
+//    transition_matrix: MatGen<T, typenum::Sum<DP,DP>, DP, U1>
+}
+
+impl<T, DP> KalmanFilterMatGen<T, DP>
+    where
+        T: Copy + Zero + Default,
+        DP: ArrayLength<T>,
+{
+    fn init() -> KalmanFilterMatGen<T, DP> {
+        KalmanFilterMatGen {
+            state_pre:
+            unsafe{
+                MatGen::new(Default::default())
             }
-//            state_pre: mat![
-//                [T::zero()]
-//            ]
         }
     }
 }
@@ -70,7 +91,18 @@ fn build_matrix() {
         Mat::new([0; 2])
     };
 
-    U2::to_u32();
+    get_concrete_usize::<U1>();
+
+    let a = arr![u32; 1, 2, 3];
+
+    let b : GenericArray<u32, U2> = Default::default();
+
+    let kf : KalmanFilterCV<u32, U2> = KalmanFilterCV::init();
+
+    let kf_gen : KalmanFilterMatGen<f32, U2> = KalmanFilterMatGen::init();
+
+    type G = typenum::Sum<U0, U1>;
+    G::to_u32();
 
     // partially evaluate the tree
     assert_eq!(c.get(0, 0), 22);

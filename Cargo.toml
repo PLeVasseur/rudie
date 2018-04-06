@@ -4,5 +4,6 @@ version = "0.1.0"
 authors = ["Peter LeVasseur <plevasseur@gmail.com>"]
 
 [dependencies]
-mat = "0.1.0"
+mat = { path = "../mat" }
 typenum = "1.10.0"
+generic-array = "0.11.0"
