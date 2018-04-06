@@ -1,8 +1,8 @@
+#![no_std]
 #![feature(proc_macro)]
 
 extern crate mat;
 extern crate typenum;
-extern crate core;
 
 use mat::Mat;
 use mat::mat;
@@ -28,7 +28,7 @@ where
 //    MP: Unsigned,
 //    CP: Unsigned
 {
-    state_pre: Mat<T, [T; 1], DP, U1>
+    state_pre: Mat<T, [T; DP], DP, U1>
 }
 
 impl<T, DP> KalmanFilterCV<T, DP>
@@ -36,16 +36,16 @@ where
     T: Copy + Zero,
     DP: Unsigned
 {
-//    fn init() -> KalmanFilterCV<T, DP> {
-//        KalmanFilterCV {
+    fn init() -> KalmanFilterCV<T, DP> {
+        KalmanFilterCV {
+            state_pre: unsafe {
+                Mat::new([T::zero(); DP::to_usize()])
+            }
 //            state_pre: mat![
 //                [T::zero()]
 //            ]
-////            state_pre: mat![
-////                [T::zero()]
-////            ]
-//        }
-//    }
+        }
+    }
 }
 
 fn build_matrix() {
@@ -66,11 +66,11 @@ fn build_matrix() {
     // build an expression tree
     let c = &a * &b;
 
-    let d: [f32; 2] = [0.; 0.];
-
     let a: Mat<i32, [i32; 2], U2, U1> = unsafe {
-        Mat::new([i32; 2])
+        Mat::new([0; 2])
     };
+
+    U2::to_u32();
 
     // partially evaluate the tree
     assert_eq!(c.get(0, 0), 22);
@@ -80,9 +80,6 @@ fn build_matrix() {
 mod tests {
     #[test]
     fn it_works() {
-        f32::zero();
-
-
 
         assert_eq!(2 + 2, 4);
     }
