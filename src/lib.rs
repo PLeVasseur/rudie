@@ -7,19 +7,15 @@ extern crate mat;
 extern crate typenum;
 extern crate generic_array;
 
-use mat::{Mat, MatGen};
+use core::ops::{Deref, DerefMut, Mul, Add};
+
+use mat::{Mat, MatrixArray};
 use mat::mat;
 use mat::traits::{Matrix, Zero};
-use typenum::{Unsigned, U0, U1, U2, Sum};
+use mat::dimension::DimName;
+use typenum::{Unsigned, U0, U1, U2, Prod};
 use generic_array::{GenericArray, ArrayLength, arr, arr_impl};
-use core::default;
 
-// cannot make this const, because to_usize() is not const
-// to_usize() cannot be made const, because trait functions cannot be const
-fn get_concrete_usize<T: Unsigned>() -> usize
-{
-    T::to_usize()
-}
 
 #[derive(Clone)]
 pub struct KalmanFilterMat<T, DP>
@@ -37,34 +33,31 @@ impl<T, DP> KalmanFilterMat<T, DP>
         T: Copy + Zero + Default,
         DP: Unsigned,
 {
-    fn init() -> KalmanFilterMat<T, DP> {
-            // how to initialize
-    }
+//    fn init() -> KalmanFilterMat<T, DP> {
+//            // how to initialize
+//    }
 }
 
-#[derive(Clone)]
 pub struct KalmanFilterMatGen<T, DP>
-    where
-        T: Copy + Zero + Default,
-        DP: ArrayLength<T>,
-//    MP: Unsigned,
-//    CP: Unsigned
+where
+    T: Copy + Zero + Default,
+    DP: DimName,
+    DP::Value: Mul<DP::Value>,
+    Prod<DP::Value, DP::Value>: ArrayLength<T>,
 {
-    state_pre: MatGen<T, DP, U1>,
-//    transition_matrix: MatGen<T, typenum::Sum<DP,DP>, DP, U1>
+    state_pre: MatrixArray<T, DP, DP>
 }
 
 impl<T, DP> KalmanFilterMatGen<T, DP>
     where
         T: Copy + Zero + Default,
-        DP: ArrayLength<T>,
+        DP: DimName,
+        DP::Value: Mul<DP::Value>,
+        Prod<DP::Value, DP::Value>: ArrayLength<T>,
 {
-    fn init() -> KalmanFilterMatGen<T, DP> {
+    fn init() -> Self {
         KalmanFilterMatGen {
-            state_pre:
-            unsafe{
-                MatGen::new(Default::default())
-            }
+            state_pre: Default::default()
         }
     }
 }
@@ -91,15 +84,9 @@ fn build_matrix() {
         Mat::new([0; 2])
     };
 
-    get_concrete_usize::<U1>();
-
     let a = arr![u32; 1, 2, 3];
 
     let b : GenericArray<u32, U2> = Default::default();
-
-    let kf : KalmanFilterCV<u32, U2> = KalmanFilterCV::init();
-
-    let kf_gen : KalmanFilterMatGen<f32, U2> = KalmanFilterMatGen::init();
 
     type G = typenum::Sum<U0, U1>;
     G::to_u32();
