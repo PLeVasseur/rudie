@@ -5,10 +5,10 @@ pub extern crate mat;
 pub extern crate typenum;
 pub extern crate generic_array;
 
-use core::ops::{Mul};
+use core::ops::{Mul, DerefMut};
 use core::fmt;
 
-use mat::traits::{Zero};
+use mat::traits::{Zero, Matrix};
 use typenum::{Unsigned, Prod};
 use typenum::consts::*;
 use generic_array::{ArrayLength};
@@ -82,6 +82,11 @@ where
 
             control_matrix: Default::default()
         }
+    }
+
+    pub fn predict(&self, control: mat::MatGen<T, DP, CP>) {
+        let a = &self.transition_matrix * &self.state_post;
+
     }
 }
 
