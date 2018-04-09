@@ -3,17 +3,18 @@
 #![feature(unsize)]
 #![no_std]
 
-extern crate mat;
-extern crate typenum;
-extern crate generic_array;
+pub extern crate mat;
+pub extern crate typenum;
+pub extern crate generic_array;
 
-use core::ops::{Deref, DerefMut, Mul, Add};
+use core::ops::{Mul};
+use core::fmt;
 
-use mat::{Mat, MatrixArray};
+use mat::{Mat, MatGen, MatGen2};
 use mat::mat;
 use mat::traits::{Matrix, Zero};
-use mat::dimension::DimName;
-use typenum::{Unsigned, U0, U1, U2, Prod};
+use typenum::{Unsigned, Prod, UInt, UTerm};
+use typenum::consts::*;
 use generic_array::{GenericArray, ArrayLength, arr, arr_impl};
 
 
@@ -38,27 +39,41 @@ impl<T, DP> KalmanFilterMat<T, DP>
 //    }
 }
 
-pub struct KalmanFilterMatGen<T, DP>
+pub struct KalmanFilterMatGen2<T, DP>
 where
     T: Copy + Zero + Default,
-    DP: DimName,
-    DP::Value: Mul<DP::Value>,
-    Prod<DP::Value, DP::Value>: ArrayLength<T>,
+    DP: Unsigned,
+    DP: Mul<U1>,
+    Prod<DP, U1>: ArrayLength<T>,
 {
-    state_pre: MatrixArray<T, DP, DP>
+    state_pre: MatGen2<T, DP, U1>
 }
 
-impl<T, DP> KalmanFilterMatGen<T, DP>
-    where
-        T: Copy + Zero + Default,
-        DP: DimName,
-        DP::Value: Mul<DP::Value>,
-        Prod<DP::Value, DP::Value>: ArrayLength<T>,
+impl<T, DP> KalmanFilterMatGen2<T, DP>
+where
+    T: Copy + Zero + Default,
+    DP: Unsigned,
+    DP: Mul<U1>,
+    Prod<DP, U1>: ArrayLength<T>,
 {
-    fn init() -> Self {
-        KalmanFilterMatGen {
+    pub fn init() -> Self {
+        KalmanFilterMatGen2 {
             state_pre: Default::default()
         }
+    }
+}
+
+impl<T, DP> fmt::Debug for KalmanFilterMatGen2<T, DP>
+where
+    T: Copy + Zero + Default + fmt::Debug,
+    DP: Unsigned,
+    DP: Mul<U1>,
+    Prod<DP, U1>: ArrayLength<T>,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("state_pre: ")?;
+        write!(f, "{:?}", self.state_pre)?;
+        f.write_str("]")
     }
 }
 
@@ -90,6 +105,8 @@ fn build_matrix() {
 
     type G = typenum::Sum<U0, U1>;
     G::to_u32();
+
+    type MYU1 = U1;
 
     // partially evaluate the tree
     assert_eq!(c.get(0, 0), 22);
