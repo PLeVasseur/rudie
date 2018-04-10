@@ -8,7 +8,8 @@ pub extern crate generic_array;
 use core::ops::{Mul, DerefMut};
 use core::fmt;
 
-use mat::traits::{Zero, Matrix};
+use mat::traits::{Zero, LazyMatrix};
+use mat::{Product};
 use typenum::{Unsigned, Prod};
 use typenum::consts::*;
 use generic_array::{ArrayLength};
@@ -47,10 +48,10 @@ where
     control_matrix: mat::MatGen<T, DP, CP>
 }
 
-impl<T, DP, MP, CP> KalmanFilter<T, DP, MP, CP>
+impl<'b, 'a: 'b, T, DP, MP, CP> KalmanFilter<T, DP, MP, CP>
 where
-    T: Copy + Zero + Default,
-    DP: Unsigned,
+    T: Copy + Zero + Default + 'b,
+    DP: Unsigned + 'b,
     MP: Unsigned,
     CP: Unsigned,
     DP: Mul<U1>,
@@ -64,7 +65,8 @@ where
     DP: Mul<MP>,
     Prod<DP, MP>: ArrayLength<T>,
     DP: Mul<CP>,
-    Prod<DP, CP>: ArrayLength<T>
+    Prod<DP, CP>: ArrayLength<T>,
+    mat::Product<&'b mat::MatGen<T, DP, DP>, &'b mat::MatGen<T, DP, U1>>: mat::traits::LazyMatrix
 {
     pub fn init() -> Self {
         KalmanFilter {
@@ -84,9 +86,11 @@ where
         }
     }
 
-    pub fn predict(&self, control: mat::MatGen<T, DP, CP>) {
-        let a = &self.transition_matrix * &self.state_post;
+    pub fn predict(&'a mut self/*, control: mat::MatGen<T, DP, CP>*/) {
 
+        let b = &self.transition_matrix * &self.state_post;
+        b.get(0,0);
+//        b.eval(&mut self.state_pre);
     }
 }
 
