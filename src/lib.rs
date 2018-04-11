@@ -8,9 +8,8 @@ pub extern crate generic_array;
 use core::ops::{Mul};
 use core::fmt;
 
-use mat::traits::{Zero, ImmMatrix};
+use mat::traits::{Zero};
 use typenum::{Unsigned, Prod};
-pub use typenum::consts;
 use typenum::consts::*;
 use generic_array::{ArrayLength};
 
@@ -88,11 +87,7 @@ where
 
     pub fn predict(&'a mut self/*, control: mat::MatGenImm<T, DP, CP>*/) {
 
-        let a = &self.transition_matrix * &self.state_post;
-        let mut b: mat::MatGenImm<T, DP, U1> = Default::default();
-
-//        b = a;
-        self.state_pre = a;
+        self.state_pre = &self.transition_matrix * &self.state_post;
 
     }
 }
