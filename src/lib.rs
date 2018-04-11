@@ -5,10 +5,10 @@ pub extern crate mat;
 pub extern crate typenum;
 pub extern crate generic_array;
 
-use core::ops::{Mul, DerefMut};
+use core::ops::{Mul};
 use core::fmt;
 
-use mat::traits::{Zero, Matrix};
+use mat::traits::{Zero};
 use typenum::{Unsigned, Prod};
 use typenum::consts::*;
 use generic_array::{ArrayLength};
@@ -32,25 +32,25 @@ where
     DP: Mul<CP>,
     Prod<DP, CP>: ArrayLength<T>
 {
-    state_pre: mat::MatGen<T, DP, U1>,
-    state_post: mat::MatGen<T, DP, U1>,
-    transition_matrix: mat::MatGen<T, DP, DP>,
+    pub state_pre: mat::MatGenImm<T, DP, U1>,
+    pub state_post: mat::MatGenImm<T, DP, U1>,
+    pub transition_matrix: mat::MatGenImm<T, DP, DP>,
 
-    process_noise_cov: mat::MatGen<T, DP, DP>,
-    measurement_matrix: mat::MatGen<T, MP, DP>,
-    measurement_noise_cov: mat::MatGen<T, MP, MP>,
+    pub process_noise_cov: mat::MatGenImm<T, DP, DP>,
+    pub measurement_matrix: mat::MatGenImm<T, MP, DP>,
+    pub measurement_noise_cov: mat::MatGenImm<T, MP, MP>,
 
-    error_cov_pre: mat::MatGen<T, DP, DP>,
-    error_cov_post: mat::MatGen<T, DP, DP>,
-    gain: mat::MatGen<T, DP, MP>,
+    pub error_cov_pre: mat::MatGenImm<T, DP, DP>,
+    pub error_cov_post: mat::MatGenImm<T, DP, DP>,
+    pub gain: mat::MatGenImm<T, DP, MP>,
 
-    control_matrix: mat::MatGen<T, DP, CP>
+    pub control_matrix: mat::MatGenImm<T, DP, CP>
 }
 
-impl<T, DP, MP, CP> KalmanFilter<T, DP, MP, CP>
+impl<'b, 'a: 'b, T, DP, MP, CP> KalmanFilter<T, DP, MP, CP>
 where
-    T: Copy + Zero + Default,
-    DP: Unsigned,
+    T: Copy + Zero + Default + 'b,
+    DP: Unsigned + 'b,
     MP: Unsigned,
     CP: Unsigned,
     DP: Mul<U1>,
@@ -64,7 +64,8 @@ where
     DP: Mul<MP>,
     Prod<DP, MP>: ArrayLength<T>,
     DP: Mul<CP>,
-    Prod<DP, CP>: ArrayLength<T>
+    Prod<DP, CP>: ArrayLength<T>,
+    &'b mat::MatGenImm<T, DP, DP>: Mul<&'b mat::MatGenImm<T, DP, U1>, Output = mat::MatGenImm<T, DP, U1>>,
 {
     pub fn init() -> Self {
         KalmanFilter {
@@ -84,8 +85,9 @@ where
         }
     }
 
-    pub fn predict(&self, control: mat::MatGen<T, DP, CP>) {
-        let a = &self.transition_matrix * &self.state_post;
+    pub fn predict(&'a mut self/*, control: mat::MatGenImm<T, DP, CP>*/) {
+
+        self.state_pre = &self.transition_matrix * &self.state_post;
 
     }
 }
