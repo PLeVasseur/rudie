@@ -67,9 +67,6 @@ where
     DP: Mul<CP>,
     Prod<DP, CP>: ArrayLength<T>,
     &'b mat::MatGenImm<T, DP, DP>: Mul<&'b mat::MatGenImm<T, DP, U1>, Output = mat::MatGenImm<T, DP, U1>>,
-//    &'b mat::MatGenImm<T, DP, DP>: Mul<&'b mat::MatGenImm<T, DP, U1>>,
-//    <&'b mat::MatGenImm<T, DP, DP> as Mul<&'b mat::MatGenImm<T, DP, U1>>>::Output = mat::MatGenImm<T, DP, U1>,
-//    Prod<&'b mat::MatGenImm<T, DP, DP>, &'b mat::MatGenImm<T, DP, U1>> = mat::MatGenImm<Elem = T, NROWS = DP, NCOLS = U1>
 {
     pub fn init() -> Self {
         KalmanFilter {
