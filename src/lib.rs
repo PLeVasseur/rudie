@@ -212,6 +212,10 @@ where
         f.write_str("gain: ")?;
         write!(f, "{:?}; ", self.gain)?;
         f.write_str("control_matrix: ")?;
-        write!(f, "{:?}; ", self.control_matrix)
+        write!(f, "{:?}; ", self.control_matrix)?;
+        f.write_str("residual: ")?;
+        write!(f, "{:?}; ", self.residual)?;
+        f.write_str("innov_cov: ")?;
+        write!(f, "{:?}; ", self.innov_cov)
     }
 }
