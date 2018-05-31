@@ -1,222 +1,196 @@
 #![feature(proc_macro)]
 #![no_std]
 
-pub extern crate mat;
 pub extern crate typenum;
 pub extern crate generic_array;
+pub extern crate nalgebra as na;
 
-use core::ops::{Mul, Add, Sub};
+use core::ops::{Mul, Sub};
 use core::fmt;
 
-use mat::traits::{Zero, TransposeImm};
-use typenum::{Unsigned, Prod};
-use typenum::consts::*;
 use generic_array::{ArrayLength};
 
-pub struct KalmanFilter<T, DP, MP, CP>
+use na::{U1, Matrix, MatrixArray, DimName, Vector, zero, SVD};
+
+const FLT_EPSILON: f64 = 1.19209290e-07;
+
+pub struct KalmanFilter<DP, MP, CP>
 where
-    T: Copy + Zero + Default,
-    DP: Unsigned,
-    MP: Unsigned,
-    CP: Unsigned,
-    DP: Mul<U1>,
-    Prod<DP, U1>: ArrayLength<T>,
-    DP: Mul<DP>,
-    Prod<DP, DP>: ArrayLength<T>,
-    MP: Mul<DP>,
-    Prod<MP, DP>: ArrayLength<T>,
-    MP: Mul<MP>,
-    Prod<MP, MP>: ArrayLength<T>,
-    DP: Mul<MP>,
-    Prod<DP, MP>: ArrayLength<T>,
-    DP: Mul<CP>,
-    Prod<DP, CP>: ArrayLength<T>,
-    CP: Mul<U1>,
-    Prod<CP, U1>: ArrayLength<T>,
-    MP: Mul<U1>,
-    Prod<MP, U1>: ArrayLength<T>,
-    DP: Mul<MP>,
-    Prod<DP, MP>: ArrayLength<T>,
+//    T: Copy + PartialEq + Debug,
+    DP: DimName,
+    MP: DimName,
+    CP: DimName,
+    <DP as DimName>::Value: Mul<typenum::U1>,
+    <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<f64>,
+    <DP as DimName>::Value: Mul,
+    <<DP as DimName>::Value as Mul>::Output: ArrayLength<f64>,
+    <MP as DimName>::Value: Mul<<DP as DimName>::Value>,
+    <<MP as DimName>::Value as Mul<<DP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <MP as DimName>::Value: Mul,
+    <<MP as DimName>::Value as Mul>::Output: ArrayLength<f64>,
+    <DP as DimName>::Value: Mul<<CP as DimName>::Value>,
+    <<DP as DimName>::Value as Mul<<CP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <DP as DimName>::Value: Mul<<MP as DimName>::Value>,
+    <<DP as DimName>::Value as Mul<<MP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <MP as DimName>::Value: Mul<typenum::U1>,
+    <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<f64>
 {
-    pub state_pre: mat::MatGenImm<T, DP, U1>,
-    pub state_post: mat::MatGenImm<T, DP, U1>,
-    pub transition_matrix: mat::MatGenImm<T, DP, DP>,
+    pub state_pre: Vector<f64, DP, MatrixArray<f64, DP, U1>>,
+    pub state_post: Vector<f64, DP, MatrixArray<f64, DP, U1>>,
+    pub transition_matrix: Matrix<f64, DP, DP, MatrixArray<f64, DP, DP>>,
 
-    pub process_noise_cov: mat::MatGenImm<T, DP, DP>,
-    pub measurement_matrix: mat::MatGenImm<T, MP, DP>,
-    pub measurement_noise_cov: mat::MatGenImm<T, MP, MP>,
+    pub process_noise_cov: Matrix<f64, DP, DP, MatrixArray<f64, DP, DP>>,
+    pub measurement_matrix: Matrix<f64, MP, DP, MatrixArray<f64, MP, DP>>,
+    pub measurement_noise_cov: Matrix<f64, MP, MP, MatrixArray<f64, MP, MP>>,
 
-    pub error_cov_pre: mat::MatGenImm<T, DP, DP>,
-    pub error_cov_post: mat::MatGenImm<T, DP, DP>,
-    pub gain: mat::MatGenImm<T, DP, MP>,
+    pub control_matrix: Matrix<f64, DP, CP, MatrixArray<f64, DP, CP>>,
 
-    pub control_matrix: mat::MatGenImm<T, DP, CP>,
+    pub error_cov_pre: Matrix<f64, DP, DP, MatrixArray<f64, DP, DP>>,
+    pub error_cov_post: Matrix<f64, DP, DP, MatrixArray<f64, DP, DP>>,
+    pub gain: Matrix<f64, DP, MP, MatrixArray<f64, DP, MP>>,
 
-    temp1: mat::MatGenImm<T, DP, U1>,
-    temp2: mat::MatGenImm<T, DP, U1>,
-    temp3: mat::MatGenImm<T, CP, U1>,
-    temp4: mat::MatGenImm<T, DP, DP>,
-    temp5: mat::MatGenImm<T, DP, DP>,
-    temp6: mat::MatGenImm<T, DP, DP>,
-    temp7: mat::MatGenImm<T, MP, DP>,
-    temp8: mat::MatGenImm<T, MP, MP>,
-    temp9: mat::MatGenImm<T, MP, MP>,
-    temp10: mat::MatGenImm<T, DP, MP>,
-    temp11: mat::MatGenImm<T, MP, U1>,
-    temp12: mat::MatGenImm<T, MP, U1>,
-    temp13: mat::MatGenImm<T, MP, U1>,
+    pub residual: Vector<f64, MP, MatrixArray<f64, MP, U1>>,
+    pub innov_cov: Matrix<f64, MP, MP, MatrixArray<f64, MP, MP>>
 }
 
-impl<'b, 'a: 'b, T, DP, MP, CP> KalmanFilter<T, DP, MP, CP>
+impl<DP, MP, CP> KalmanFilter<DP, MP, CP>
 where
-    T: Copy + Zero + Default + 'b,
-    DP: Unsigned + 'b,
-    MP: Unsigned + 'b,
-    CP: Unsigned + 'b,
-    DP: Mul<DP>,
-    Prod<DP, DP>: ArrayLength<T>,
-    MP: Mul<DP>,
-    Prod<MP, DP>: ArrayLength<T>,
-    MP: Mul<MP>,
-    Prod<MP, MP>: ArrayLength<T>,
-    DP: Mul<MP>,
-    Prod<DP, MP>: ArrayLength<T>,
-    DP: Mul<CP>,
-    Prod<DP, CP>: ArrayLength<T>,
-    DP: Mul<U1>,
-    Prod<DP, U1>: ArrayLength<T>,
-    CP: Mul<U1>,
-    Prod<CP, U1>: ArrayLength<T>,
-    MP: Mul<U1>,
-    Prod<MP, U1>: ArrayLength<T>,
-    DP: Mul<MP>,
-    Prod<DP, MP>: ArrayLength<T>,
-    // --- below bounds for fn predict ---
-    // below bounds used for updating state_pre based on process model
-    &'b mat::MatGenImm<T, DP, DP>: Mul<&'b mat::MatGenImm<T, DP, U1>, Output = mat::MatGenImm<T, DP, U1>>,
-    // below bounds used for updating state_pre based on control model
-    mat::MatGenImm<T, DP, U1>: core::clone::Clone,
-    mat::MatGenImm<T, DP, CP>: core::clone::Clone,
-    mat::MatGenImm<T, CP, U1> : core::clone::Clone,
-    &'b mat::MatGenImm<T, DP, CP>: Mul<&'b mat::MatGenImm<T, CP, U1>, Output = mat::MatGenImm<T, DP, U1>>,
-    &'b mat::MatGenImm<T, DP, U1>: Add<&'b mat::MatGenImm<T, DP, U1>, Output = mat::MatGenImm<T, DP, U1>>,
-    // below bounds used for updating error_cov_pre
-    &'b mat::MatGenImm<T, DP, DP>: Mul<&'b mat::MatGenImm<T, DP, DP>, Output = mat::MatGenImm<T, DP, DP>>,
-    &'b mat::MatGenImm<T, DP, DP>: mat::traits::TransposeImm<Output = mat::MatGenImm<T, DP, DP>>,
-    &'b mat::MatGenImm<T, DP, DP>: Add<&'b mat::MatGenImm<T, DP, DP>, Output = mat::MatGenImm<T, DP, DP>>,
-    // error_cov_pre update
-    mat::MatGenImm<T, DP, DP>: core::clone::Clone,
-    // --- below bounds for fn correct --
-    // finding gain
-    &'b mat::MatGenImm<T, MP, DP>: Mul<&'b mat::MatGenImm<T, DP, U1>, Output = mat::MatGenImm<T, MP, U1>>,
-    &'b mat::MatGenImm<T, MP, DP>: Mul<&'b mat::MatGenImm<T, DP, DP>, Output = mat::MatGenImm<T, MP, DP>>,
-    &'b mat::MatGenImm<T, MP, DP>: Mul<&'b mat::MatGenImm<T, DP, MP>, Output = mat::MatGenImm<T, MP, MP>>,
-    &'b mat::MatGenImm<T, MP, DP>: mat::traits::TransposeImm<Output = mat::MatGenImm<T, DP, MP>>,
-    &'b mat::MatGenImm<T, MP, MP>: Add<&'b mat::MatGenImm<T, MP, MP>, Output = mat::MatGenImm<T, MP, MP>>,
-    mat::MatGenImm<T, MP, U1>: core::clone::Clone,
-    &'b mat::MatGenImm<T, MP, U1>: Sub<&'b mat::MatGenImm<T, MP, U1>, Output = mat::MatGenImm<T, MP, U1>>,
+//    T: Copy + PartialEq + Debug,
+    DP: DimName,
+    MP: DimName,
+    CP: DimName,
+    <DP as DimName>::Value: Mul<typenum::U1>,
+    <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<f64>,
+    <DP as DimName>::Value: Mul,
+    <<DP as DimName>::Value as Mul>::Output: ArrayLength<f64>,
+    <MP as DimName>::Value: Mul<<DP as DimName>::Value>,
+    <<MP as DimName>::Value as Mul<<DP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <MP as DimName>::Value: Mul,
+    <<MP as DimName>::Value as Mul>::Output: ArrayLength<f64>,
+    <DP as DimName>::Value: Mul<<CP as DimName>::Value>,
+    <<DP as DimName>::Value as Mul<<CP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <DP as DimName>::Value: Mul<<MP as DimName>::Value>,
+    <<DP as DimName>::Value as Mul<<MP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <MP as DimName>::Value: Mul<typenum::U1>,
+    <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<f64>,
+    // fn predict
+    <CP as DimName>::Value: Mul<typenum::U1>,
+    <<CP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<f64>,
+    // fn correct
+    <MP as DimName>::Value: Mul<typenum::U1>,
+    <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<f64>,
+    <MP as na::DimName>::Value: typenum::Min,
+    <<MP as DimName>::Value as typenum::Min>::Output: na::NamedDim,
+    <<MP as DimName>::Value as typenum::Min>::Output: Mul<<MP as DimName>::Value>,
+    <<<MP as DimName>::Value as typenum::Min>::Output as Mul<<MP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <MP as DimName>::Value: Mul<<<MP as DimName>::Value as typenum::Min>::Output>,
+    <<MP as DimName>::Value as Mul<<<MP as DimName>::Value as typenum::Min>::Output>>::Output: ArrayLength<f64>,
+    <<MP as DimName>::Value as typenum::Min>::Output: Mul<typenum::U1>,
+    <<<MP as DimName>::Value as typenum::Min>::Output as Mul<typenum::U1>>::Output: ArrayLength<f64>,
+    <<MP as DimName>::Value as typenum::Min>::Output: Sub<typenum::U1>,
+    <<<MP as DimName>::Value as typenum::Min>::Output as Sub<typenum::U1>>::Output: na::NamedDim,
+    <<<MP as DimName>::Value as typenum::Min>::Output as Sub<typenum::U1>>::Output: Mul<typenum::U1>,
+    <<<<MP as DimName>::Value as typenum::Min>::Output as Sub<typenum::U1>>::Output as Mul<typenum::U1>>::Output: ArrayLength<f64>,
+    <<MP as DimName>::Value as typenum::Min>::Output: Mul<<DP as DimName>::Value>,
+    <<<MP as DimName>::Value as typenum::Min>::Output as Mul<<DP as DimName>::Value>>::Output: ArrayLength<f64>
 {
     pub fn init() -> Self {
         KalmanFilter {
-            state_pre: Default::default(),
-            state_post: Default::default(),
-            transition_matrix: Default::default(),
+            state_pre: zero(),
+            state_post: zero(),
+            transition_matrix: zero(),
 
-            process_noise_cov: Default::default(),
-            measurement_matrix: Default::default(),
-            measurement_noise_cov: Default::default(),
+            process_noise_cov: zero(),
+            measurement_matrix: zero(),
+            measurement_noise_cov: zero(),
 
-            error_cov_pre: Default::default(),
-            error_cov_post: Default::default(),
-            gain: Default::default(),
+            error_cov_pre: zero(),
+            error_cov_post: zero(),
+            gain: zero(),
 
-            control_matrix: Default::default(),
+            control_matrix: zero(),
 
-            temp1: Default::default(),
-            temp2: Default::default(),
-            temp3: Default::default(),
-            temp4: Default::default(),
-            temp5: Default::default(),
-            temp6: Default::default(),
-            temp7: Default::default(),
-            temp8: Default::default(),
-            temp9: Default::default(),
-            temp10: Default::default(),
-            temp11: Default::default(),
-            temp12: Default::default(),
-            temp13: Default::default()
+            residual: zero(),
+            innov_cov: zero()
         }
     }
 
-    pub fn predict(&'a mut self, control: mat::MatGenImm<T, CP, U1>) -> mat::MatGenImm<T, DP, U1> {
+    pub fn predict(&mut self, control: Vector<f64, CP, MatrixArray<f64, CP, U1>>)
+        -> Vector<f64, DP, MatrixArray<f64, DP, U1>>
+    {
 
+        // x'(k) = A*x(k)
         self.state_pre = &self.transition_matrix * &self.state_post;
 
-        if CP::to_usize() > 0 {
-
-            // TODO: Perhaps there's a better way to satisfy the borrow checker than clone'ing
-            // we would like to avoid run-time allocations
-            self.temp3 = control.clone();
-            self.temp2 = &self.control_matrix * &self.temp3;
-            self.temp1 = self.state_pre.clone();
-            self.state_pre = &self.temp1 + &self.temp2;
+        if CP::dim() > 0 {
+            // x'(k) = x'(k) + B*u(k)
+            self.state_pre = &self.state_pre + &self.control_matrix * control;
         }
 
-        self.temp4 = &self.transition_matrix * &self.error_cov_post;
-        self.temp5 = self.transition_matrix.t();
-        self.temp6 = &self.temp4 * &self.temp5;
-        self.error_cov_pre = &self.temp6 + &self.process_noise_cov;
+        // P'(k) = A*P(k)*At + Q
+        self.error_cov_pre = &self.transition_matrix * &self.error_cov_post * self.transition_matrix.transpose() + &self.process_noise_cov;
 
-        self.state_pre = self.state_post.clone();
-        self.error_cov_pre = self.error_cov_post.clone();
+        // handle the case when there will be measurement before the next predict.
+        self.state_post = self.state_pre.clone();
+        self.error_cov_post = self.error_cov_pre.clone();
+
 
         self.state_pre.clone()
     }
 
+    pub fn correct(&mut self, measurement: Vector<f64, MP, MatrixArray<f64, MP, U1>>)
+                   -> Vector<f64, DP, MatrixArray<f64, DP, U1>>
+    {
 
-    pub fn correct(&'a mut self, measurement: mat::MatGenImm<T, MP, U1>) {
+        // y(k) = z(k) - H*x'(k)
+        self.residual = measurement - (&self.measurement_matrix * &self.state_pre); // y
 
-        self.temp12 = measurement.clone();
-        // residual calculation
-        self.temp11 = &self.measurement_matrix * &self.state_pre;
-        self.temp13 = &self.temp12 - &self.temp11; // y
+        // S(k) = H*x'(k)*Ht + R
+        self.innov_cov = &self.measurement_matrix * &self.error_cov_pre * self.measurement_matrix.transpose() + &self.measurement_noise_cov;
 
-        // innovation covariance calculation
-        self.temp7 = &self.measurement_matrix * &self.error_cov_pre;
-        self.temp10 = self.measurement_matrix.t();
-        self.temp8 = &self.temp7 * &self.temp10;
-        self.temp9 = &self.temp8 + &self.measurement_noise_cov; // S
+        // temp1 = H*P'(k)
+        let temp1 = &self.measurement_matrix * &self.error_cov_pre;
 
 
-        // K
+        let svd = SVD::new(self.innov_cov.clone(), true, true);
+
+        // temp2 = inv(S)*temp1 = Kt(k)
+        let temp2 = svd.solve(&temp1, FLT_EPSILON * 2.0);
+
+        // K(k)
+        self.gain = temp2.transpose();
+
+        // x(k) = x'(k) + K(k)*y(k)
+        self.state_post = &self.state_pre + &self.gain*&self.residual;
+
+        // P(k) = P'(k) - K(k)*temp1
+        self.error_cov_post = &self.error_cov_pre - &self.gain*temp1;
+
+
+        self.state_post.clone()
     }
 }
 
-impl<T, DP, MP, CP> fmt::Debug for KalmanFilter<T, DP, MP, CP>
+impl<DP, MP, CP> fmt::Debug for KalmanFilter<DP, MP, CP>
 where
-    T: Copy + Zero + Default + fmt::Debug,
-    DP: Unsigned,
-    MP: Unsigned,
-    CP: Unsigned,
-
-    DP: Mul<DP>,
-    Prod<DP, DP>: ArrayLength<T>,
-    MP: Mul<DP>,
-    Prod<MP, DP>: ArrayLength<T>,
-    MP: Mul<MP>,
-    Prod<MP, MP>: ArrayLength<T>,
-    DP: Mul<MP>,
-    Prod<DP, MP>: ArrayLength<T>,
-    DP: Mul<CP>,
-    Prod<DP, CP>: ArrayLength<T>,
-    CP: Mul<U1>,
-    Prod<CP, U1>: ArrayLength<T>,
-    DP: Mul<U1>,
-    Prod<DP, U1>: ArrayLength<T>,
-    MP: Mul<U1>,
-    Prod<MP, U1>: ArrayLength<T>,
-    DP: Mul<MP>,
-    Prod<DP, MP>: ArrayLength<T>,
+//    T: Copy + Zero + Default + fmt::Debug,
+    DP: DimName,
+    MP: DimName,
+    CP: DimName,
+    <DP as DimName>::Value: Mul<typenum::U1>,
+    <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<f64>,
+    <DP as DimName>::Value: Mul,
+    <<DP as DimName>::Value as Mul>::Output: ArrayLength<f64>,
+    <MP as DimName>::Value: Mul<<DP as DimName>::Value>,
+    <<MP as DimName>::Value as Mul<<DP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <MP as DimName>::Value: Mul,
+    <<MP as DimName>::Value as Mul>::Output: ArrayLength<f64>,
+    <DP as DimName>::Value: Mul<<CP as DimName>::Value>,
+    <<DP as DimName>::Value as Mul<<CP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <DP as DimName>::Value: Mul<<MP as DimName>::Value>,
+    <<DP as DimName>::Value as Mul<<MP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <MP as DimName>::Value: Mul<typenum::U1>,
+    <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<f64>
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str("state_pre: ")?;
@@ -238,21 +212,6 @@ where
         f.write_str("gain: ")?;
         write!(f, "{:?}; ", self.gain)?;
         f.write_str("control_matrix: ")?;
-        write!(f, "{:?}; ", self.control_matrix)?;
-        f.write_str("temp1: ")?;
-        write!(f, "{:?}; ", self.temp1)?;
-        f.write_str("temp2: ")?;
-        write!(f, "{:?}; ", self.temp2)?;
-        f.write_str("temp3: ")?;
-        write!(f, "{:?}; ", self.temp3)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-
-        assert_eq!(2 + 2, 4);
+        write!(f, "{:?}; ", self.control_matrix)
     }
 }

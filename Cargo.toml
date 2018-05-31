@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Peter LeVasseur <plevasseur@gmail.com>"]
 
 [dependencies]
-mat = { path = "../mat" }
 typenum = "1.10.0"
 generic-array = "0.11.0"
+
+nalgebra = { version = "0.15", default-features = false }
