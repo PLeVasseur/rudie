@@ -1,4 +1,3 @@
-#![feature(proc_macro)]
 #![no_std]
 
 pub extern crate typenum;
