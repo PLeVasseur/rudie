@@ -1,0 +1,8 @@
+language: rust
+rust:
+  - stable
+  - beta
+  - nightly-2018-10-26
+matrix:
+  fast_finish: true
+cache: cargo
