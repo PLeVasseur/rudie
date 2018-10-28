@@ -7,7 +7,7 @@ fn predict_dummy_control() {
 
     let dummy_control: Vector<f64, U0, MatrixArray<f64, U0, U1>> = zero();
     // no control parameters, CP = U0
-    let mut kf: KalmanFilter<U2, U1, U0> = KalmanFilter::init();
+    let mut kf: KalmanFilter<f64, U2, U1, U0> = KalmanFilter::init();
 
     kf.state_post = rudie::na::Matrix2x1::new(
         1.,
@@ -32,7 +32,7 @@ fn predict_with_control() {
 
     let dummy_control: Vector<f64, U1, MatrixArray<f64, U1, U1>> = rudie::na::Vector1::new(1.0);
 
-    let mut kf: KalmanFilter<U2, U1, U1> = KalmanFilter::init();
+    let mut kf: KalmanFilter<f64, U2, U1, U1> = KalmanFilter::init();
     kf.control_matrix = rudie::na::Matrix2x1::new(
         1.,
         1.

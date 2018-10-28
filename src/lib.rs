@@ -9,89 +9,87 @@ use core::fmt;
 
 use generic_array::{ArrayLength};
 
-use na::{U1, Matrix, MatrixArray, DimName, Vector, zero, SVD};
+use na::{U1, Matrix, MatrixArray, DimName, Vector, zero, SVD, Real};
 
-const FLT_EPSILON: f64 = 1.19209290e-07;
-
-pub struct KalmanFilter<DP, MP, CP>
+pub struct KalmanFilter<N, DP, MP, CP>
 where
-//    T: Copy + PartialEq + Debug,
+    N: Real,
     DP: DimName,
     MP: DimName,
     CP: DimName,
     <DP as DimName>::Value: Mul<typenum::U1>,
-    <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<f64>,
+    <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
     <DP as DimName>::Value: Mul,
-    <<DP as DimName>::Value as Mul>::Output: ArrayLength<f64>,
+    <<DP as DimName>::Value as Mul>::Output: ArrayLength<N>,
     <MP as DimName>::Value: Mul<<DP as DimName>::Value>,
-    <<MP as DimName>::Value as Mul<<DP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <<MP as DimName>::Value as Mul<<DP as DimName>::Value>>::Output: ArrayLength<N>,
     <MP as DimName>::Value: Mul,
-    <<MP as DimName>::Value as Mul>::Output: ArrayLength<f64>,
+    <<MP as DimName>::Value as Mul>::Output: ArrayLength<N>,
     <DP as DimName>::Value: Mul<<CP as DimName>::Value>,
-    <<DP as DimName>::Value as Mul<<CP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <<DP as DimName>::Value as Mul<<CP as DimName>::Value>>::Output: ArrayLength<N>,
     <DP as DimName>::Value: Mul<<MP as DimName>::Value>,
-    <<DP as DimName>::Value as Mul<<MP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <<DP as DimName>::Value as Mul<<MP as DimName>::Value>>::Output: ArrayLength<N>,
     <MP as DimName>::Value: Mul<typenum::U1>,
-    <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<f64>
+    <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>
 {
-    pub state_pre: Vector<f64, DP, MatrixArray<f64, DP, U1>>,
-    pub state_post: Vector<f64, DP, MatrixArray<f64, DP, U1>>,
-    pub transition_matrix: Matrix<f64, DP, DP, MatrixArray<f64, DP, DP>>,
+    pub state_pre: Vector<N, DP, MatrixArray<N, DP, U1>>,
+    pub state_post: Vector<N, DP, MatrixArray<N, DP, U1>>,
+    pub transition_matrix: Matrix<N, DP, DP, MatrixArray<N, DP, DP>>,
 
-    pub process_noise_cov: Matrix<f64, DP, DP, MatrixArray<f64, DP, DP>>,
-    pub measurement_matrix: Matrix<f64, MP, DP, MatrixArray<f64, MP, DP>>,
-    pub measurement_noise_cov: Matrix<f64, MP, MP, MatrixArray<f64, MP, MP>>,
+    pub process_noise_cov: Matrix<N, DP, DP, MatrixArray<N, DP, DP>>,
+    pub measurement_matrix: Matrix<N, MP, DP, MatrixArray<N, MP, DP>>,
+    pub measurement_noise_cov: Matrix<N, MP, MP, MatrixArray<N, MP, MP>>,
 
-    pub control_matrix: Matrix<f64, DP, CP, MatrixArray<f64, DP, CP>>,
+    pub control_matrix: Matrix<N, DP, CP, MatrixArray<N, DP, CP>>,
 
-    pub error_cov_pre: Matrix<f64, DP, DP, MatrixArray<f64, DP, DP>>,
-    pub error_cov_post: Matrix<f64, DP, DP, MatrixArray<f64, DP, DP>>,
-    pub gain: Matrix<f64, DP, MP, MatrixArray<f64, DP, MP>>,
+    pub error_cov_pre: Matrix<N, DP, DP, MatrixArray<N, DP, DP>>,
+    pub error_cov_post: Matrix<N, DP, DP, MatrixArray<N, DP, DP>>,
+    pub gain: Matrix<N, DP, MP, MatrixArray<N, DP, MP>>,
 
-    pub residual: Vector<f64, MP, MatrixArray<f64, MP, U1>>,
-    pub innov_cov: Matrix<f64, MP, MP, MatrixArray<f64, MP, MP>>
+    pub residual: Vector<N, MP, MatrixArray<N, MP, U1>>,
+    pub innov_cov: Matrix<N, MP, MP, MatrixArray<N, MP, MP>>
 }
 
-impl<DP, MP, CP> KalmanFilter<DP, MP, CP>
+impl<N, DP, MP, CP> KalmanFilter<N, DP, MP, CP>
 where
-//    T: Copy + PartialEq + Debug,
+    N: Real,
     DP: DimName,
     MP: DimName,
     CP: DimName,
     <DP as DimName>::Value: Mul<typenum::U1>,
-    <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<f64>,
+    <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
     <DP as DimName>::Value: Mul,
-    <<DP as DimName>::Value as Mul>::Output: ArrayLength<f64>,
+    <<DP as DimName>::Value as Mul>::Output: ArrayLength<N>,
     <MP as DimName>::Value: Mul<<DP as DimName>::Value>,
-    <<MP as DimName>::Value as Mul<<DP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <<MP as DimName>::Value as Mul<<DP as DimName>::Value>>::Output: ArrayLength<N>,
     <MP as DimName>::Value: Mul,
-    <<MP as DimName>::Value as Mul>::Output: ArrayLength<f64>,
+    <<MP as DimName>::Value as Mul>::Output: ArrayLength<N>,
     <DP as DimName>::Value: Mul<<CP as DimName>::Value>,
-    <<DP as DimName>::Value as Mul<<CP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <<DP as DimName>::Value as Mul<<CP as DimName>::Value>>::Output: ArrayLength<N>,
     <DP as DimName>::Value: Mul<<MP as DimName>::Value>,
-    <<DP as DimName>::Value as Mul<<MP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <<DP as DimName>::Value as Mul<<MP as DimName>::Value>>::Output: ArrayLength<N>,
     <MP as DimName>::Value: Mul<typenum::U1>,
-    <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<f64>,
+    <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
     // fn predict
     <CP as DimName>::Value: Mul<typenum::U1>,
-    <<CP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<f64>,
+    <<CP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
     // fn correct
     <MP as DimName>::Value: Mul<typenum::U1>,
-    <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<f64>,
+    <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
     <MP as na::DimName>::Value: typenum::Min,
     <<MP as DimName>::Value as typenum::Min>::Output: na::NamedDim,
     <<MP as DimName>::Value as typenum::Min>::Output: Mul<<MP as DimName>::Value>,
-    <<<MP as DimName>::Value as typenum::Min>::Output as Mul<<MP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <<<MP as DimName>::Value as typenum::Min>::Output as Mul<<MP as DimName>::Value>>::Output: ArrayLength<N>,
     <MP as DimName>::Value: Mul<<<MP as DimName>::Value as typenum::Min>::Output>,
-    <<MP as DimName>::Value as Mul<<<MP as DimName>::Value as typenum::Min>::Output>>::Output: ArrayLength<f64>,
+    <<MP as DimName>::Value as Mul<<<MP as DimName>::Value as typenum::Min>::Output>>::Output: ArrayLength<N>,
     <<MP as DimName>::Value as typenum::Min>::Output: Mul<typenum::U1>,
-    <<<MP as DimName>::Value as typenum::Min>::Output as Mul<typenum::U1>>::Output: ArrayLength<f64>,
+    <<<MP as DimName>::Value as typenum::Min>::Output as Mul<typenum::U1>>::Output: ArrayLength<N>,
     <<MP as DimName>::Value as typenum::Min>::Output: Sub<typenum::U1>,
     <<<MP as DimName>::Value as typenum::Min>::Output as Sub<typenum::U1>>::Output: na::NamedDim,
     <<<MP as DimName>::Value as typenum::Min>::Output as Sub<typenum::U1>>::Output: Mul<typenum::U1>,
-    <<<<MP as DimName>::Value as typenum::Min>::Output as Sub<typenum::U1>>::Output as Mul<typenum::U1>>::Output: ArrayLength<f64>,
+    <<<<MP as DimName>::Value as typenum::Min>::Output as Sub<typenum::U1>>::Output as Mul<typenum::U1>>::Output: ArrayLength<N>,
     <<MP as DimName>::Value as typenum::Min>::Output: Mul<<DP as DimName>::Value>,
-    <<<MP as DimName>::Value as typenum::Min>::Output as Mul<<DP as DimName>::Value>>::Output: ArrayLength<f64>
+    <<<MP as DimName>::Value as typenum::Min>::Output as Mul<<DP as DimName>::Value>>::Output: ArrayLength<N>
 {
     pub fn init() -> Self {
         KalmanFilter {
@@ -114,8 +112,8 @@ where
         }
     }
 
-    pub fn predict(&mut self, control: Vector<f64, CP, MatrixArray<f64, CP, U1>>)
-        -> Vector<f64, DP, MatrixArray<f64, DP, U1>>
+    pub fn predict(&mut self, control: Vector<N, CP, MatrixArray<N, CP, U1>>)
+        -> Vector<N, DP, MatrixArray<N, DP, U1>>
     {
 
         // x'(k) = A*x(k)
@@ -137,8 +135,8 @@ where
         self.state_pre.clone()
     }
 
-    pub fn correct(&mut self, measurement: Vector<f64, MP, MatrixArray<f64, MP, U1>>)
-                   -> Vector<f64, DP, MatrixArray<f64, DP, U1>>
+    pub fn correct(&mut self, measurement: Vector<N, MP, MatrixArray<N, MP, U1>>)
+                   -> Vector<N, DP, MatrixArray<N, DP, U1>>
     {
 
         // y(k) = z(k) - H*x'(k)
@@ -154,7 +152,7 @@ where
         let svd = SVD::new(self.innov_cov.clone(), true, true);
 
         // temp2 = inv(S)*temp1 = Kt(k)
-        let temp2 = svd.solve(&temp1, FLT_EPSILON * 2.0);
+        let temp2 = svd.solve(&temp1, N::default_epsilon());
 
         // K(k)
         self.gain = temp2.transpose();
@@ -170,26 +168,26 @@ where
     }
 }
 
-impl<DP, MP, CP> fmt::Debug for KalmanFilter<DP, MP, CP>
+impl<N, DP, MP, CP> fmt::Debug for KalmanFilter<N, DP, MP, CP>
 where
-//    T: Copy + Zero + Default + fmt::Debug,
+    N: Real,
     DP: DimName,
     MP: DimName,
     CP: DimName,
     <DP as DimName>::Value: Mul<typenum::U1>,
-    <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<f64>,
+    <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
     <DP as DimName>::Value: Mul,
-    <<DP as DimName>::Value as Mul>::Output: ArrayLength<f64>,
+    <<DP as DimName>::Value as Mul>::Output: ArrayLength<N>,
     <MP as DimName>::Value: Mul<<DP as DimName>::Value>,
-    <<MP as DimName>::Value as Mul<<DP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <<MP as DimName>::Value as Mul<<DP as DimName>::Value>>::Output: ArrayLength<N>,
     <MP as DimName>::Value: Mul,
-    <<MP as DimName>::Value as Mul>::Output: ArrayLength<f64>,
+    <<MP as DimName>::Value as Mul>::Output: ArrayLength<N>,
     <DP as DimName>::Value: Mul<<CP as DimName>::Value>,
-    <<DP as DimName>::Value as Mul<<CP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <<DP as DimName>::Value as Mul<<CP as DimName>::Value>>::Output: ArrayLength<N>,
     <DP as DimName>::Value: Mul<<MP as DimName>::Value>,
-    <<DP as DimName>::Value as Mul<<MP as DimName>::Value>>::Output: ArrayLength<f64>,
+    <<DP as DimName>::Value as Mul<<MP as DimName>::Value>>::Output: ArrayLength<N>,
     <MP as DimName>::Value: Mul<typenum::U1>,
-    <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<f64>
+    <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str("state_pre: ")?;

@@ -9,7 +9,7 @@ fn correct() {
 
     let epsilon = 0.0000001;
 
-    let mut kf: KalmanFilter<U2, U1, U0> = KalmanFilter::init();
+    let mut kf: KalmanFilter<f64, U2, U1, U0> = KalmanFilter::init();
 
     kf.measurement_matrix = rudie::na::Matrix1x2::new(
         1., 2.

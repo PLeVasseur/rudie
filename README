@@ -1,3 +1,1 @@
-Currently using nightly-2018-09-15-x86_64-unknown-linux-gnu 1.30.0), instead of latest nightly (1.32.0)
-
-Appears it may be a known issue with libm: [https://github.com/rust-lang-nursery/libm/issues/149]
+A Kalman Filter library that can run on #![no_std] platforms without an allocator.
