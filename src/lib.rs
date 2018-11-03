@@ -1,25 +1,49 @@
 #![no_std]
 
+/*!
+# rudie
+
+**rudie** has a Kalman Filter implementation that will work on embedded platforms for robotics
+applications.
+
+## Using **rudie**
+You will need the last stable build of the [rust compiler](http://www.rust-lang.org)
+and the official package manager: [cargo](https://github.com/rust-lang/cargo).
+
+Simply add the following to your `Cargo.toml` file:
+
+```.ignore
+[dependencies]
+rudie = "0.1"
+```
+
+## Features
+**rudie** is meant to collect together Kalman filter implementations that may be used on embedded
+devices for robotics applications since it is designed to run on `#![no_std]` targets.
+Those features include:
+
+* An implementation of the OpenCV Kalman filter that will run on `#![no_std]` targets
+*/
+
 pub extern crate typenum;
 pub extern crate generic_array;
 pub extern crate nalgebra as na;
 
 use core::ops::{Mul, Sub};
+
 /// A Rust implementation of the OpenCV Kalman Filter
 ///
 /// Because Rust currently doesn't have const generics, we make heavy use of the typenum
 /// to specify type-level numerics that are used when interacting with the library.
 ///
-/// rudie can be used in #!\[no_std\] mode for embedded applications with no OS since we make use
-/// of only #!\[no_std\] compatible libraries
+/// rudie can be used in `#![no_std]` mode for embedded applications with no OS since we make use
+/// of only `#![no_std]` compatible libraries
 ///
 /// # Examples
 ///
 /// The following example shows a Kalman filter estimating the orientation and rotational rate
-/// of a rotating point.
-///
-/// Note the areas marked for assertions can be ignored for the purposes of reviewing the example,
-/// they are there to help with regression testing.
+/// of a rotating point. An example is given further down showing that the kalman filter is correct
+/// by examining its internal state.
 ///
 /// ```
 /// extern crate rudie;
@@ -34,44 +58,6 @@ use core::ops::{Mul, Sub};
 ///
 /// use rudie::KalmanFilter;
 /// use rudie::na::{U0, U1, U2, Vector, Matrix, MatrixArray};
-///
-/// /**************************************************
-/// ** filter configurations to assert against - begin
-/// ***************************************************/
-///
-/// // known filter configurations to assert state against for kalman predict
-/// let state_pre_assert_predict = rudie::na::Matrix2x3::new(
-///     -0.19378295683865557, 0.1361050053334287,   0.04097848073026808,
-///     -0.06167960574363984, 0.06884248182130964, -0.00403224753640588
-/// );
-/// let error_cov_pre_assert_predict = rudie::na::Matrix2x6::new(
-///     2.00001, 1.,      0.7143075510116619, 0.57144061223518,   0.3509028377933237, 0.1929981748186918,
-///     1.,      1.00001, 0.57144061223518,   0.5238317913724221, 0.1929981748186918, 0.1228331394128128
-/// );
-///
-/// // known filter configurations to assert state against for kalman correct
-/// let residual_assert_correct = rudie::na::Matrix1x3::new(
-///     0.27409768910726956, -0.10384708598466963, -0.1451463671400915
-/// );
-/// let innov_cov_assert_correct = rudie::na::Matrix1x3::new(
-///     2.10001, 0.8143075510116619, 0.45090283779332374
-/// );
-/// let gain_assert_correct = rudie::na::Matrix2x3::new(
-///     0.9523811791372422, 0.8771962756875286, 0.7782227308894513,
-///     0.47618820862757794, 0.70175035405879,  0.4280260815460971
-/// );
-/// let state_post_assert_correct = rudie::na::Matrix2x3::new(
-///     0.06726252351211906, 0.04501072826667396,  -0.07197772148417683,
-///     0.06884248182130964, -0.00403224753640588, -0.06615867831403044
-/// );
-/// let error_cov_post_assert_correct = rudie::na::Matrix2x6::new(
-///     0.09523811791372422, 0.04761882086275779, 0.08771962756875286, 0.07017503540587901, 0.07782227308894514, 0.04280260815460972,
-///     0.04761882086275779, 0.5238217913724221,  0.07017503540587901, 0.12282313941281281, 0.04280260815460972, 0.04022488689961951
-/// );
-///
-/// /**************************************************
-/// ** filter configurations to assert against - end
-/// ***************************************************/
 ///
 /// // seed the rng so we get reproducible results
 /// let seed: [u8; 32] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
@@ -111,28 +97,15 @@ use core::ops::{Mul, Sub};
 /// let process_noise_generator = Normal::new(0., kf.process_noise_cov[(0)].sqrt());
 /// let mut process_noise_rng: StdRng = SeedableRng::from_seed(seed);
 ///
+/// // set up the initial state
 /// kf.state_post = rudie::na::Matrix2x1::new(
 ///     -0.13210335109501573,
 ///     -0.06167960574363984
 /// );
 ///
-/// for cycle in 0..2 {
+/// for cycle in 0..3 {
 ///     // Kalman predict
 ///     kf.predict_no_control();
-///
-///     /********************************************************************
-///     ** assert known filter configuration after predict_no_control - begin
-///     *********************************************************************/
-///     close(kf.state_pre[(0,0)], state_pre_assert_predict[(0,cycle)], core::f64::EPSILON);
-///     close(kf.state_pre[(1,0)], state_pre_assert_predict[(1,cycle)], core::f64::EPSILON);
-///
-///     close(kf.error_cov_pre[(0,0)], error_cov_pre_assert_predict[(0,cycle*2)], core::f64::EPSILON);
-///     close(kf.error_cov_pre[(1,0)], error_cov_pre_assert_predict[(1,cycle*2)], core::f64::EPSILON);
-///     close(kf.error_cov_pre[(0,1)], error_cov_pre_assert_predict[(0,cycle*2+1)], core::f64::EPSILON);
-///     close(kf.error_cov_pre[(1,1)], error_cov_pre_assert_predict[(1,cycle*2+1)], core::f64::EPSILON);
-///     /********************************************************************
-///     ** assert known filter configuration after predict_no_control - end
-///     *********************************************************************/
 ///
 ///     // generate measurement
 ///     measurement = rudie::na::Matrix1::new(
@@ -142,27 +115,6 @@ use core::ops::{Mul, Sub};
 ///
 ///     // Kalman correct
 ///     kf.correct(measurement);
-///
-///     /*************************************************************
-///     ** assert known filter configuration after correct - begin
-///     **************************************************************/
-///     close(kf.residual[(0,0)], residual_assert_correct[(0, cycle)], core::f64::EPSILON);
-///
-///     close(kf.innov_cov[(0, 0)], innov_cov_assert_correct[(0, cycle)], core::f64::EPSILON);
-///
-///     close(kf.gain[(0, 0)], gain_assert_correct[(0, cycle)], core::f64::EPSILON);
-///     close(kf.gain[(1, 0)], gain_assert_correct[(1, cycle)], core::f64::EPSILON);
-///
-///     close(kf.state_post[(0,0)], state_post_assert_correct[(0, cycle)], core::f64::EPSILON);
-///     close(kf.state_post[(1,0)], state_post_assert_correct[(1, cycle)], core::f64::EPSILON);
-///
-///     close(kf.error_cov_post[(0,0)], error_cov_post_assert_correct[(0, cycle*2)], core::f64::EPSILON);
-///     close(kf.error_cov_post[(1,0)], error_cov_post_assert_correct[(1, cycle*2)], core::f64::EPSILON);
-///     close(kf.error_cov_post[(0,1)], error_cov_post_assert_correct[(0, cycle*2+1)], core::f64::EPSILON);
-///     close(kf.error_cov_post[(1,1)], error_cov_post_assert_correct[(1, cycle*2+1)], core::f64::EPSILON);
-///     /*************************************************************
-///     ** assert known filter configuration after correct - end
-///     **************************************************************/
 ///
 ///     // generate next state
 ///     process_noise = rudie::na::Matrix2x1::new(
@@ -175,7 +127,7 @@ use core::ops::{Mul, Sub};
 /// ```
 ///
 /// The following example shows a Kalman filter estimating the orientation and rotational rate
-/// of a rotating point.
+/// of a rotating point. Assertions are included to ensure the example code does not regress.
 ///
 /// ```
 /// extern crate rudie;
@@ -267,12 +219,13 @@ use core::ops::{Mul, Sub};
 /// let process_noise_generator = Normal::new(0., kf.process_noise_cov[(0)].sqrt());
 /// let mut process_noise_rng: StdRng = SeedableRng::from_seed(seed);
 ///
+/// // set up the initial state
 /// kf.state_post = rudie::na::Matrix2x1::new(
 ///     -0.13210335109501573,
 ///     -0.06167960574363984
 /// );
 ///
-/// for cycle in 0..2 {
+/// for cycle in 0..3 {
 ///     // Kalman predict
 ///     kf.predict_no_control();
 ///
