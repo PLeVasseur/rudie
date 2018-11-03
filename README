@@ -1,1 +1,0 @@
-A Kalman Filter library that can run on #![no_std] platforms without an allocator.
