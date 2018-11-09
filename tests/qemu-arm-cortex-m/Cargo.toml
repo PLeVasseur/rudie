@@ -1,0 +1,27 @@
+[package]
+authors = ["Peter LeVasseur <plevasseur@gmail.com>"]
+edition = "2018"
+readme = "README.md"
+name = "qemu-arm-cortex-m"
+version = "0.1.0"
+
+[dependencies]
+cortex-m = "0.5.7"
+cortex-m-rt = "0.6.3"
+cortex-m-semihosting = "0.3.1"
+#panic-halt = "0.2.0"
+panic-semihosting = { version = "0.5.1", features = ["exit"] }
+rudie = { path = "../.." }
+libm = "0.1.2"
+assert_float_eq = { version = "1.1.3", default-features = false }
+
+# this lets you use `cargo fix`!
+#[[bin]]
+#name = "qemu"
+#test = false
+#bench = false
+
+[profile.release]
+codegen-units = 1 # better optimizations
+debug = true # symbols are nice and they don't increase the size on Flash
+lto = true # better optimizations
