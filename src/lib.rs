@@ -56,7 +56,7 @@ use core::ops::{Mul, Sub};
 /// use libm::F64Ext;
 /// use asrt::close;
 ///
-/// use rudie::KalmanFilter;
+/// use rudie::OpenCVKalmanFilter;
 /// use rudie::na::{U0, U1, U2, Vector, Matrix, MatrixArray};
 ///
 /// // seed the rng so we get reproducible results
@@ -69,7 +69,7 @@ use core::ops::{Mul, Sub};
 ///
 /// // We use the typenum crate here to specify type-level numbers such as U0 = 0, U1 = 1, ...
 /// // until Rust has support for const generics
-/// let mut kf: KalmanFilter<f64, U2, U1, U0> = KalmanFilter::init();
+/// let mut kf: OpenCVKalmanFilter<f64, U2, U1, U0> = OpenCVKalmanFilter::init();
 ///
 /// // (phi, delta_phi), i.e. orientation and angular rate
 /// let mut state: Vector<f64, U2, MatrixArray<f64, U2, U1>>;
@@ -140,7 +140,7 @@ use core::ops::{Mul, Sub};
 /// use libm::F64Ext;
 /// use asrt::close;
 ///
-/// use rudie::KalmanFilter;
+/// use rudie::OpenCVKalmanFilter;
 /// use rudie::na::{U0, U1, U2, Vector, Matrix, MatrixArray};
 ///
 /// /**************************************************
@@ -191,7 +191,7 @@ use core::ops::{Mul, Sub};
 ///
 /// // We use the typenum crate here to specify type-level numbers such as U0 = 0, U1 = 1, ...
 /// // until Rust has support for const generics
-/// let mut kf: KalmanFilter<f64, U2, U1, U0> = KalmanFilter::init();
+/// let mut kf: OpenCVKalmanFilter<f64, U2, U1, U0> = OpenCVKalmanFilter::init();
 ///
 /// // (phi, delta_phi), i.e. orientation and angular rate
 /// let mut state: Vector<f64, U2, MatrixArray<f64, U2, U1>>;
@@ -283,7 +283,7 @@ use core::ops::{Mul, Sub};
 ///
 /// ```
 ///
-pub struct KalmanFilter<N, DP, MP, CP>
+pub struct OpenCVKalmanFilter<N, DP, MP, CP>
     where
         N: Real,
         DP: DimName,
@@ -328,7 +328,7 @@ use generic_array::{ArrayLength};
 
 use na::{U1, Matrix, MatrixArray, DimName, Vector, zero, SVD, Real};
 
-impl<N, DP, MP, CP> KalmanFilter<N, DP, MP, CP>
+impl<N, DP, MP, CP> OpenCVKalmanFilter<N, DP, MP, CP>
 where
     N: Real,
     DP: DimName,
@@ -370,7 +370,7 @@ where
     <<<MP as DimName>::Value as typenum::Min>::Output as Mul<<DP as DimName>::Value>>::Output: ArrayLength<N>
 {
     pub fn init() -> Self {
-        KalmanFilter {
+        OpenCVKalmanFilter {
             state_pre: zero(),
             state_post: zero(),
             transition_matrix: zero(),
@@ -453,7 +453,7 @@ where
     }
 }
 
-impl<N, DP, MP, CP> fmt::Debug for KalmanFilter<N, DP, MP, CP>
+impl<N, DP, MP, CP> fmt::Debug for OpenCVKalmanFilter<N, DP, MP, CP>
 where
     N: Real,
     DP: DimName,

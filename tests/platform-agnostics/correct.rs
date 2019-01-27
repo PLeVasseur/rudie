@@ -3,13 +3,13 @@ extern crate assert as asrt;
 
 #[test]
 fn single_correct_f64() {
-    use rudie::KalmanFilter;
+    use rudie::OpenCVKalmanFilter;
     use rudie::na::{U0, U1, U2, Vector, MatrixArray};
     use asrt::close;
 
     let epsilon = 0.0000001;
 
-    let mut kf: KalmanFilter<f64, U2, U1, U0> = KalmanFilter::init();
+    let mut kf: OpenCVKalmanFilter<f64, U2, U1, U0> = OpenCVKalmanFilter::init();
 
     kf.measurement_matrix = rudie::na::Matrix1x2::new(
         1., 2.
@@ -49,13 +49,13 @@ fn single_correct_f64() {
 
 #[test]
 fn single_correct_f32() {
-    use rudie::KalmanFilter;
+    use rudie::OpenCVKalmanFilter;
     use rudie::na::{U0, U1, U2, Vector, MatrixArray};
     use asrt::close;
 
     let epsilon = 0.0000001;
 
-    let mut kf: KalmanFilter<f32, U2, U1, U0> = KalmanFilter::init();
+    let mut kf: OpenCVKalmanFilter<f32, U2, U1, U0> = OpenCVKalmanFilter::init();
 
     kf.measurement_matrix = rudie::na::Matrix1x2::new(
         1., 2.

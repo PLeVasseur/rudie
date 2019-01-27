@@ -18,7 +18,7 @@ fn main() -> ! {
 
     use assert_float_eq::{assert_float_absolute_eq};
 
-    use rudie::KalmanFilter;
+    use rudie::OpenCVKalmanFilter;
     use rudie::na::{U0, U1, U2, Vector, MatrixArray};
 
     let state_buffer = [0.040157366134307, -0.004584667101862575, -0.13210335109501573,
@@ -76,7 +76,7 @@ fn main() -> ! {
 
     // We use the typenum crate here to specify type-level numbers such as U0 = 0, U1 = 1, ...
     // until Rust has support for const generics
-    let mut kf: KalmanFilter<f64, U2, U1, U0> = KalmanFilter::init();
+    let mut kf: OpenCVKalmanFilter<f64, U2, U1, U0> = OpenCVKalmanFilter::init();
 
     // (phi, delta_phi), i.e. orientation and angular rate
     let mut state: Vector<f64, U2, MatrixArray<f64, U2, U1>>;
