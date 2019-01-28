@@ -19,7 +19,7 @@ fn main() -> ! {
     use assert_float_eq::{assert_float_absolute_eq};
 
     use rudie::OpenCVKalmanFilter;
-    use rudie::na::{U0, U1, U2, Vector, MatrixArray};
+    use rudie::na::{U0, U1, U2, Vector, ArrayStorage};
 
     let state_buffer = [0.040157366134307, -0.004584667101862575, -0.13210335109501573,
         -0.06167960574363984, -0.09218946743133555, 0.04102534430132926, 0.055414343550211326,
@@ -79,11 +79,11 @@ fn main() -> ! {
     let mut kf: OpenCVKalmanFilter<f64, U2, U1, U0> = OpenCVKalmanFilter::init();
 
     // (phi, delta_phi), i.e. orientation and angular rate
-    let mut state: Vector<f64, U2, MatrixArray<f64, U2, U1>>;
+    let mut state: Vector<f64, U2, ArrayStorage<f64, U2, U1>>;
 
-    let mut process_noise: Vector<f64, U2, MatrixArray<f64, U2, U1>>;
+    let mut process_noise: Vector<f64, U2, ArrayStorage<f64, U2, U1>>;
 
-    let mut measurement: Vector<f64, U1, MatrixArray<f64, U1, U1>>;
+    let mut measurement: Vector<f64, U1, ArrayStorage<f64, U1, U1>>;
 
     state = rudie::na::Matrix2x1::new(
         state_buffer[state_buffer_ndx],

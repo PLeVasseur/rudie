@@ -4,7 +4,7 @@ extern crate assert as asrt;
 #[test]
 fn single_correct_f64() {
     use rudie::OpenCVKalmanFilter;
-    use rudie::na::{U0, U1, U2, Vector, MatrixArray};
+    use rudie::na::{U0, U1, U2, Vector, ArrayStorage};
     use asrt::close;
 
     let epsilon = 0.0000001;
@@ -27,7 +27,7 @@ fn single_correct_f64() {
 
     kf.measurement_noise_cov = rudie::na::Vector1::new(0.5);
 
-    let measurement: Vector<f64, U1, MatrixArray<f64, U1, U1>> = rudie::na::Vector1::new(2.0);
+    let measurement: Vector<f64, U1, ArrayStorage<f64, U1, U1>> = rudie::na::Vector1::new(2.0);
 
     kf.correct(measurement);
 
@@ -50,7 +50,7 @@ fn single_correct_f64() {
 #[test]
 fn single_correct_f32() {
     use rudie::OpenCVKalmanFilter;
-    use rudie::na::{U0, U1, U2, Vector, MatrixArray};
+    use rudie::na::{U0, U1, U2, Vector, ArrayStorage};
     use asrt::close;
 
     let epsilon = 0.0000001;
@@ -73,7 +73,7 @@ fn single_correct_f32() {
 
     kf.measurement_noise_cov = rudie::na::Vector1::new(0.5);
 
-    let measurement: Vector<f32, U1, MatrixArray<f32, U1, U1>> = rudie::na::Vector1::new(2.0);
+    let measurement: Vector<f32, U1, ArrayStorage<f32, U1, U1>> = rudie::na::Vector1::new(2.0);
 
     kf.correct(measurement);
 

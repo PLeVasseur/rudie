@@ -57,7 +57,7 @@ use core::ops::{Mul, Sub};
 /// use asrt::close;
 ///
 /// use rudie::OpenCVKalmanFilter;
-/// use rudie::na::{U0, U1, U2, Vector, Matrix, MatrixArray};
+/// use rudie::na::{U0, U1, U2, Vector, Matrix, ArrayStorage};
 ///
 /// // seed the rng so we get reproducible results
 /// let seed: [u8; 32] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
@@ -72,11 +72,11 @@ use core::ops::{Mul, Sub};
 /// let mut kf: OpenCVKalmanFilter<f64, U2, U1, U0> = OpenCVKalmanFilter::init();
 ///
 /// // (phi, delta_phi), i.e. orientation and angular rate
-/// let mut state: Vector<f64, U2, MatrixArray<f64, U2, U1>>;
+/// let mut state: Vector<f64, U2, ArrayStorage<f64, U2, U1>>;
 ///
-/// let mut process_noise: Vector<f64, U2, MatrixArray<f64, U2, U1>>;
+/// let mut process_noise: Vector<f64, U2, ArrayStorage<f64, U2, U1>>;
 ///
-/// let mut measurement: Vector<f64, U1, MatrixArray<f64, U1, U1>>;
+/// let mut measurement: Vector<f64, U1, ArrayStorage<f64, U1, U1>>;
 ///
 /// state = rudie::na::Matrix2x1::new(
 ///     state_generator.sample(&mut state_rng),
@@ -141,7 +141,7 @@ use core::ops::{Mul, Sub};
 /// use asrt::close;
 ///
 /// use rudie::OpenCVKalmanFilter;
-/// use rudie::na::{U0, U1, U2, Vector, Matrix, MatrixArray};
+/// use rudie::na::{U0, U1, U2, Vector, Matrix, ArrayStorage};
 ///
 /// /**************************************************
 /// ** filter configurations to assert against - begin
@@ -194,11 +194,11 @@ use core::ops::{Mul, Sub};
 /// let mut kf: OpenCVKalmanFilter<f64, U2, U1, U0> = OpenCVKalmanFilter::init();
 ///
 /// // (phi, delta_phi), i.e. orientation and angular rate
-/// let mut state: Vector<f64, U2, MatrixArray<f64, U2, U1>>;
+/// let mut state: Vector<f64, U2, ArrayStorage<f64, U2, U1>>;
 ///
-/// let mut process_noise: Vector<f64, U2, MatrixArray<f64, U2, U1>>;
+/// let mut process_noise: Vector<f64, U2, ArrayStorage<f64, U2, U1>>;
 ///
-/// let mut measurement: Vector<f64, U1, MatrixArray<f64, U1, U1>>;
+/// let mut measurement: Vector<f64, U1, ArrayStorage<f64, U1, U1>>;
 ///
 /// state = rudie::na::Matrix2x1::new(
 ///     state_generator.sample(&mut state_rng),
@@ -304,29 +304,29 @@ pub struct OpenCVKalmanFilter<N, DP, MP, CP>
         <MP as DimName>::Value: Mul<typenum::U1>,
         <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>
 {
-    pub state_pre: Vector<N, DP, MatrixArray<N, DP, U1>>,
-    pub state_post: Vector<N, DP, MatrixArray<N, DP, U1>>,
-    pub transition_matrix: Matrix<N, DP, DP, MatrixArray<N, DP, DP>>,
+    pub state_pre: Vector<N, DP, ArrayStorage<N, DP, U1>>,
+    pub state_post: Vector<N, DP, ArrayStorage<N, DP, U1>>,
+    pub transition_matrix: Matrix<N, DP, DP, ArrayStorage<N, DP, DP>>,
 
-    pub process_noise_cov: Matrix<N, DP, DP, MatrixArray<N, DP, DP>>,
-    pub measurement_matrix: Matrix<N, MP, DP, MatrixArray<N, MP, DP>>,
-    pub measurement_noise_cov: Matrix<N, MP, MP, MatrixArray<N, MP, MP>>,
+    pub process_noise_cov: Matrix<N, DP, DP, ArrayStorage<N, DP, DP>>,
+    pub measurement_matrix: Matrix<N, MP, DP, ArrayStorage<N, MP, DP>>,
+    pub measurement_noise_cov: Matrix<N, MP, MP, ArrayStorage<N, MP, MP>>,
 
-    pub control_matrix: Matrix<N, DP, CP, MatrixArray<N, DP, CP>>,
+    pub control_matrix: Matrix<N, DP, CP, ArrayStorage<N, DP, CP>>,
 
-    pub error_cov_pre: Matrix<N, DP, DP, MatrixArray<N, DP, DP>>,
-    pub error_cov_post: Matrix<N, DP, DP, MatrixArray<N, DP, DP>>,
-    pub gain: Matrix<N, DP, MP, MatrixArray<N, DP, MP>>,
+    pub error_cov_pre: Matrix<N, DP, DP, ArrayStorage<N, DP, DP>>,
+    pub error_cov_post: Matrix<N, DP, DP, ArrayStorage<N, DP, DP>>,
+    pub gain: Matrix<N, DP, MP, ArrayStorage<N, DP, MP>>,
 
-    pub residual: Vector<N, MP, MatrixArray<N, MP, U1>>,
-    pub innov_cov: Matrix<N, MP, MP, MatrixArray<N, MP, MP>>
+    pub residual: Vector<N, MP, ArrayStorage<N, MP, U1>>,
+    pub innov_cov: Matrix<N, MP, MP, ArrayStorage<N, MP, MP>>
 }
 
 use core::fmt;
 
 use generic_array::{ArrayLength};
 
-use na::{U1, Matrix, MatrixArray, DimName, Vector, zero, SVD, Real};
+use na::{U1, Matrix, ArrayStorage, DimName, Vector, zero, SVD, Real};
 
 impl<N, DP, MP, CP> OpenCVKalmanFilter<N, DP, MP, CP>
 where
@@ -390,8 +390,8 @@ where
         }
     }
 
-    pub fn predict(&mut self, control: Vector<N, CP, MatrixArray<N, CP, U1>>)
-        -> Vector<N, DP, MatrixArray<N, DP, U1>>
+    pub fn predict(&mut self, control: Vector<N, CP, ArrayStorage<N, CP, U1>>)
+        -> Vector<N, DP, ArrayStorage<N, DP, U1>>
     {
 
         // x'(k) = A*x(k)
@@ -414,14 +414,14 @@ where
     }
 
     pub fn predict_no_control(&mut self)
-        -> Vector<N, DP, MatrixArray<N, DP, U1>>
+        -> Vector<N, DP, ArrayStorage<N, DP, U1>>
     {
-        let dummy_control: Vector<N, CP, MatrixArray<N, CP, U1>> = zero();
+        let dummy_control: Vector<N, CP, ArrayStorage<N, CP, U1>> = zero();
         self.predict(dummy_control)
     }
 
-    pub fn correct(&mut self, measurement: Vector<N, MP, MatrixArray<N, MP, U1>>)
-                   -> Vector<N, DP, MatrixArray<N, DP, U1>>
+    pub fn correct(&mut self, measurement: Vector<N, MP, ArrayStorage<N, MP, U1>>)
+                   -> Vector<N, DP, ArrayStorage<N, DP, U1>>
     {
 
         // y(k) = z(k) - H*x'(k)
@@ -500,4 +500,8 @@ where
         f.write_str("innov_cov: ")?;
         write!(f, "{:?}; ", self.innov_cov)
     }
+}
+
+pub trait KalmanState {
+    
 }
