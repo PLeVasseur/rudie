@@ -502,6 +502,29 @@ where
     }
 }
 
-pub trait KalmanState {
-    
+pub trait KalmanState <N, DP>
+where
+   N: Real,
+  DP: DimName,
+  <DP as DimName>::Value: Mul<typenum::U1>,
+  <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+{
+    // potentially useful to tell the length of the state vector when we construct a filter
+    type StateLength;
+
+    fn x(&self) -> &Vector<N, DP, ArrayStorage<N, DP, U1>>;
+}
+
+pub struct LinearVelocityState
+{
+    x: Vector<f32, na::dimension::U2, ArrayStorage<f32, na::dimension::U2, U1>>
+}
+
+impl KalmanState<f32, na::dimension::U2> for LinearVelocityState
+{
+    // useful to tell the length of the state vector when we construct a filter
+    type StateLength = na::dimension::U2;
+
+    fn x(&self) -> &Vector<f32, na::dimension::U2, ArrayStorage<f32, na::dimension::U2, U1>>
+    { &self.x }
 }
