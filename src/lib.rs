@@ -504,10 +504,10 @@ where
 
 pub trait KalmanState <N, DP>
 where
-   N: Real,
-  DP: DimName,
-  <DP as DimName>::Value: Mul<typenum::U1>,
-  <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+    N: Real,
+    DP: DimName,
+    <DP as DimName>::Value: Mul<typenum::U1>,
+    <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
 {
     // potentially useful to tell the length of the state vector when we construct a filter
     type StateLength;
@@ -527,4 +527,21 @@ impl KalmanState<f32, na::dimension::U2> for LinearVelocityState
 
     fn x(&self) -> &Vector<f32, na::dimension::U2, ArrayStorage<f32, na::dimension::U2, U1>>
     { &self.x }
+}
+
+pub trait LinearizedSystemModel <N, DP, CP> : KalmanState <N, DP>
+where
+    N: Real,
+    DP: DimName,
+    CP: DimName,
+    <DP as DimName>::Value: Mul<typenum::U1>,
+    <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+    <DP as DimName>::Value: Mul,
+    <<DP as DimName>::Value as Mul>::Output: ArrayLength<N>,
+    <CP as DimName>::Value: Mul<typenum::U1>,
+    <<CP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+{
+    // definition of state transition function
+    fn f(&self, control: Vector<N, CP, ArrayStorage<N, CP, U1>>)
+        -> Vector<N, DP, ArrayStorage<N, DP, U1>>;
 }
