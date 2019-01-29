@@ -319,55 +319,55 @@ pub struct OpenCVKalmanFilter<N, DP, MP, CP>
     pub gain: Matrix<N, DP, MP, ArrayStorage<N, DP, MP>>,
 
     pub residual: Vector<N, MP, ArrayStorage<N, MP, U1>>,
-    pub innov_cov: Matrix<N, MP, MP, ArrayStorage<N, MP, MP>>
+    pub innov_cov: Matrix<N, MP, MP, ArrayStorage<N, MP, MP>>,
 }
 
 use core::fmt;
 
-use generic_array::{ArrayLength};
+use generic_array::ArrayLength;
 
 use na::{U1, Matrix, ArrayStorage, DimName, Vector, zero, SVD, Real};
 
 impl<N, DP, MP, CP> OpenCVKalmanFilter<N, DP, MP, CP>
-where
-    N: Real,
-    DP: DimName,
-    MP: DimName,
-    CP: DimName,
-    <DP as DimName>::Value: Mul<typenum::U1>,
-    <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
-    <DP as DimName>::Value: Mul,
-    <<DP as DimName>::Value as Mul>::Output: ArrayLength<N>,
-    <MP as DimName>::Value: Mul<<DP as DimName>::Value>,
-    <<MP as DimName>::Value as Mul<<DP as DimName>::Value>>::Output: ArrayLength<N>,
-    <MP as DimName>::Value: Mul,
-    <<MP as DimName>::Value as Mul>::Output: ArrayLength<N>,
-    <DP as DimName>::Value: Mul<<CP as DimName>::Value>,
-    <<DP as DimName>::Value as Mul<<CP as DimName>::Value>>::Output: ArrayLength<N>,
-    <DP as DimName>::Value: Mul<<MP as DimName>::Value>,
-    <<DP as DimName>::Value as Mul<<MP as DimName>::Value>>::Output: ArrayLength<N>,
-    <MP as DimName>::Value: Mul<typenum::U1>,
-    <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+    where
+        N: Real,
+        DP: DimName,
+        MP: DimName,
+        CP: DimName,
+        <DP as DimName>::Value: Mul<typenum::U1>,
+        <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+        <DP as DimName>::Value: Mul,
+        <<DP as DimName>::Value as Mul>::Output: ArrayLength<N>,
+        <MP as DimName>::Value: Mul<<DP as DimName>::Value>,
+        <<MP as DimName>::Value as Mul<<DP as DimName>::Value>>::Output: ArrayLength<N>,
+        <MP as DimName>::Value: Mul,
+        <<MP as DimName>::Value as Mul>::Output: ArrayLength<N>,
+        <DP as DimName>::Value: Mul<<CP as DimName>::Value>,
+        <<DP as DimName>::Value as Mul<<CP as DimName>::Value>>::Output: ArrayLength<N>,
+        <DP as DimName>::Value: Mul<<MP as DimName>::Value>,
+        <<DP as DimName>::Value as Mul<<MP as DimName>::Value>>::Output: ArrayLength<N>,
+        <MP as DimName>::Value: Mul<typenum::U1>,
+        <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
     // fn predict
-    <CP as DimName>::Value: Mul<typenum::U1>,
-    <<CP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+        <CP as DimName>::Value: Mul<typenum::U1>,
+        <<CP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
     // fn correct
-    <MP as DimName>::Value: Mul<typenum::U1>,
-    <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
-    <MP as na::DimName>::Value: typenum::Min,
-    <<MP as DimName>::Value as typenum::Min>::Output: na::NamedDim,
-    <<MP as DimName>::Value as typenum::Min>::Output: Mul<<MP as DimName>::Value>,
-    <<<MP as DimName>::Value as typenum::Min>::Output as Mul<<MP as DimName>::Value>>::Output: ArrayLength<N>,
-    <MP as DimName>::Value: Mul<<<MP as DimName>::Value as typenum::Min>::Output>,
-    <<MP as DimName>::Value as Mul<<<MP as DimName>::Value as typenum::Min>::Output>>::Output: ArrayLength<N>,
-    <<MP as DimName>::Value as typenum::Min>::Output: Mul<typenum::U1>,
-    <<<MP as DimName>::Value as typenum::Min>::Output as Mul<typenum::U1>>::Output: ArrayLength<N>,
-    <<MP as DimName>::Value as typenum::Min>::Output: Sub<typenum::U1>,
-    <<<MP as DimName>::Value as typenum::Min>::Output as Sub<typenum::U1>>::Output: na::NamedDim,
-    <<<MP as DimName>::Value as typenum::Min>::Output as Sub<typenum::U1>>::Output: Mul<typenum::U1>,
-    <<<<MP as DimName>::Value as typenum::Min>::Output as Sub<typenum::U1>>::Output as Mul<typenum::U1>>::Output: ArrayLength<N>,
-    <<MP as DimName>::Value as typenum::Min>::Output: Mul<<DP as DimName>::Value>,
-    <<<MP as DimName>::Value as typenum::Min>::Output as Mul<<DP as DimName>::Value>>::Output: ArrayLength<N>
+        <MP as DimName>::Value: Mul<typenum::U1>,
+        <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+        <MP as na::DimName>::Value: typenum::Min,
+        <<MP as DimName>::Value as typenum::Min>::Output: na::NamedDim,
+        <<MP as DimName>::Value as typenum::Min>::Output: Mul<<MP as DimName>::Value>,
+        <<<MP as DimName>::Value as typenum::Min>::Output as Mul<<MP as DimName>::Value>>::Output: ArrayLength<N>,
+        <MP as DimName>::Value: Mul<<<MP as DimName>::Value as typenum::Min>::Output>,
+        <<MP as DimName>::Value as Mul<<<MP as DimName>::Value as typenum::Min>::Output>>::Output: ArrayLength<N>,
+        <<MP as DimName>::Value as typenum::Min>::Output: Mul<typenum::U1>,
+        <<<MP as DimName>::Value as typenum::Min>::Output as Mul<typenum::U1>>::Output: ArrayLength<N>,
+        <<MP as DimName>::Value as typenum::Min>::Output: Sub<typenum::U1>,
+        <<<MP as DimName>::Value as typenum::Min>::Output as Sub<typenum::U1>>::Output: na::NamedDim,
+        <<<MP as DimName>::Value as typenum::Min>::Output as Sub<typenum::U1>>::Output: Mul<typenum::U1>,
+        <<<<MP as DimName>::Value as typenum::Min>::Output as Sub<typenum::U1>>::Output as Mul<typenum::U1>>::Output: ArrayLength<N>,
+        <<MP as DimName>::Value as typenum::Min>::Output: Mul<<DP as DimName>::Value>,
+        <<<MP as DimName>::Value as typenum::Min>::Output as Mul<<DP as DimName>::Value>>::Output: ArrayLength<N>
 {
     pub fn init() -> Self {
         OpenCVKalmanFilter {
@@ -386,12 +386,12 @@ where
             control_matrix: zero(),
 
             residual: zero(),
-            innov_cov: zero()
+            innov_cov: zero(),
         }
     }
 
     pub fn predict(&mut self, control: Vector<N, CP, ArrayStorage<N, CP, U1>>)
-        -> Vector<N, DP, ArrayStorage<N, DP, U1>>
+                   -> Vector<N, DP, ArrayStorage<N, DP, U1>>
     {
 
         // x'(k) = A*x(k)
@@ -414,7 +414,7 @@ where
     }
 
     pub fn predict_no_control(&mut self)
-        -> Vector<N, DP, ArrayStorage<N, DP, U1>>
+                              -> Vector<N, DP, ArrayStorage<N, DP, U1>>
     {
         let dummy_control: Vector<N, CP, ArrayStorage<N, CP, U1>> = zero();
         self.predict(dummy_control)
@@ -443,10 +443,10 @@ where
         self.gain = temp2.transpose();
 
         // x(k) = x'(k) + K(k)*y(k)
-        self.state_post = &self.state_pre + &self.gain*&self.residual;
+        self.state_post = &self.state_pre + &self.gain * &self.residual;
 
         // P(k) = P'(k) - K(k)*temp1
-        self.error_cov_post = &self.error_cov_pre - &self.gain*temp1;
+        self.error_cov_post = &self.error_cov_pre - &self.gain * temp1;
 
 
         self.state_post.clone()
@@ -454,25 +454,25 @@ where
 }
 
 impl<N, DP, MP, CP> fmt::Debug for OpenCVKalmanFilter<N, DP, MP, CP>
-where
-    N: Real,
-    DP: DimName,
-    MP: DimName,
-    CP: DimName,
-    <DP as DimName>::Value: Mul<typenum::U1>,
-    <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
-    <DP as DimName>::Value: Mul,
-    <<DP as DimName>::Value as Mul>::Output: ArrayLength<N>,
-    <MP as DimName>::Value: Mul<<DP as DimName>::Value>,
-    <<MP as DimName>::Value as Mul<<DP as DimName>::Value>>::Output: ArrayLength<N>,
-    <MP as DimName>::Value: Mul,
-    <<MP as DimName>::Value as Mul>::Output: ArrayLength<N>,
-    <DP as DimName>::Value: Mul<<CP as DimName>::Value>,
-    <<DP as DimName>::Value as Mul<<CP as DimName>::Value>>::Output: ArrayLength<N>,
-    <DP as DimName>::Value: Mul<<MP as DimName>::Value>,
-    <<DP as DimName>::Value as Mul<<MP as DimName>::Value>>::Output: ArrayLength<N>,
-    <MP as DimName>::Value: Mul<typenum::U1>,
-    <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>
+    where
+        N: Real,
+        DP: DimName,
+        MP: DimName,
+        CP: DimName,
+        <DP as DimName>::Value: Mul<typenum::U1>,
+        <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+        <DP as DimName>::Value: Mul,
+        <<DP as DimName>::Value as Mul>::Output: ArrayLength<N>,
+        <MP as DimName>::Value: Mul<<DP as DimName>::Value>,
+        <<MP as DimName>::Value as Mul<<DP as DimName>::Value>>::Output: ArrayLength<N>,
+        <MP as DimName>::Value: Mul,
+        <<MP as DimName>::Value as Mul>::Output: ArrayLength<N>,
+        <DP as DimName>::Value: Mul<<CP as DimName>::Value>,
+        <<DP as DimName>::Value as Mul<<CP as DimName>::Value>>::Output: ArrayLength<N>,
+        <DP as DimName>::Value: Mul<<MP as DimName>::Value>,
+        <<DP as DimName>::Value as Mul<<MP as DimName>::Value>>::Output: ArrayLength<N>,
+        <MP as DimName>::Value: Mul<typenum::U1>,
+        <<MP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str("state_pre: ")?;
@@ -502,12 +502,12 @@ where
     }
 }
 
-pub trait KalmanState <N, DP>
-where
-    N: Real,
-    DP: DimName,
-    <DP as DimName>::Value: Mul<typenum::U1>,
-    <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+pub trait KalmanState<N, DP>
+    where
+        N: Real,
+        DP: DimName,
+        <DP as DimName>::Value: Mul<typenum::U1>,
+        <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
 {
     // potentially useful to tell the length of the state vector when we construct a filter
     type StateLength;
@@ -515,12 +515,57 @@ where
     fn x(&self) -> &Vector<N, DP, ArrayStorage<N, DP, U1>>;
 }
 
-pub struct LinearVelocityState
+pub trait SystemModel<N, DP, CP>: KalmanState<N, DP>
+    where
+        N: Real,
+        DP: DimName,
+        CP: DimName,
+        <DP as DimName>::Value: Mul<typenum::U1>,
+        <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+        <DP as DimName>::Value: Mul,
+        <<DP as DimName>::Value as Mul>::Output: ArrayLength<N>,
+        <CP as DimName>::Value: Mul<typenum::U1>,
+        <<CP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+{
+    // definition of state transition function
+    fn f(&self, control: Vector<N, CP, ArrayStorage<N, CP, U1>>)
+         -> Vector<N, DP, ArrayStorage<N, DP, U1>>;
+}
+
+pub trait LinearizedSystemModel<N, DP, CP>: SystemModel<N, DP, CP>
+    where
+        N: Real,
+        DP: DimName,
+        CP: DimName,
+        <DP as DimName>::Value: Mul<typenum::U1>,
+        <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+        <DP as DimName>::Value: Mul,
+        <<DP as DimName>::Value as Mul>::Output: ArrayLength<N>,
+        <CP as DimName>::Value: Mul<typenum::U1>,
+        <<CP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+{
+    fn update_jacobians(&self, control: Vector<N, CP, ArrayStorage<N, CP, U1>>);
+}
+
+pub struct ConstantVelocity1DState
 {
     x: Vector<f32, na::dimension::U2, ArrayStorage<f32, na::dimension::U2, U1>>
 }
 
-impl KalmanState<f32, na::dimension::U2> for LinearVelocityState
+impl ConstantVelocity1DState
+{
+    pub fn pos(&self) -> &f32
+    {
+        &self.x[(0,0)]
+    }
+
+    pub fn vel(&self) -> &f32
+    {
+        &self.x[(1,0)]
+    }
+}
+
+impl KalmanState<f32, na::dimension::U2> for ConstantVelocity1DState
 {
     // useful to tell the length of the state vector when we construct a filter
     type StateLength = na::dimension::U2;
@@ -529,19 +574,17 @@ impl KalmanState<f32, na::dimension::U2> for LinearVelocityState
     { &self.x }
 }
 
-pub trait LinearizedSystemModel <N, DP, CP> : KalmanState <N, DP>
-where
-    N: Real,
-    DP: DimName,
-    CP: DimName,
-    <DP as DimName>::Value: Mul<typenum::U1>,
-    <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
-    <DP as DimName>::Value: Mul,
-    <<DP as DimName>::Value as Mul>::Output: ArrayLength<N>,
-    <CP as DimName>::Value: Mul<typenum::U1>,
-    <<CP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+// constant velocity model
+impl SystemModel<f32, na::dimension::U2, na::dimension::U0> for ConstantVelocity1DState
 {
-    // definition of state transition function
-    fn f(&self, control: Vector<N, CP, ArrayStorage<N, CP, U1>>)
-        -> Vector<N, DP, ArrayStorage<N, DP, U1>>;
+    fn f(&self, _control: Matrix<f32, na::dimension::U0, U1, ArrayStorage<f32, na::dimension::U0, U1>>)
+         -> Vector<f32, na::dimension::U2, ArrayStorage<f32, na::dimension::U2, U1>> {
+        let pos = *self.pos() + *self.vel();
+        let vel = *self.vel();
+
+        na::Matrix2x1::new(
+            pos,
+            vel
+        )
+    }
 }
