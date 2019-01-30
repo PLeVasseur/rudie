@@ -502,50 +502,51 @@ impl<N, DP, MP, CP> fmt::Debug for OpenCVKalmanFilter<N, DP, MP, CP>
     }
 }
 
-pub trait KalmanState<N, DP>
-    where
-        N: Real,
-        DP: DimName,
-        <DP as DimName>::Value: Mul<typenum::U1>,
-        <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+pub trait KalmanState
+where
+    <Self as KalmanState>::StateLength: DimName,
+    <<Self as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
+    <<<Self as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<Self as KalmanState>::FloatType>,
+    <Self as KalmanState>::FloatType: Real
 {
-    // potentially useful to tell the length of the state vector when we construct a filter
+    // useful to tell the length of the state vector when we construct a filter
     type StateLength;
+    type FloatType;
 
-    fn x(&self) -> &Vector<N, DP, ArrayStorage<N, DP, U1>>;
+    fn x(&self) -> &Vector<Self::FloatType, Self::StateLength, ArrayStorage<Self::FloatType, Self::StateLength, U1>>;
 }
 
-pub trait SystemModel<N, DP, CP>: KalmanState<N, DP>
-    where
-        N: Real,
-        DP: DimName,
-        CP: DimName,
-        <DP as DimName>::Value: Mul<typenum::U1>,
-        <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
-        <DP as DimName>::Value: Mul,
-        <<DP as DimName>::Value as Mul>::Output: ArrayLength<N>,
-        <CP as DimName>::Value: Mul<typenum::U1>,
-        <<CP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
-{
-    // definition of state transition function
-    fn f(&self, control: Vector<N, CP, ArrayStorage<N, CP, U1>>)
-         -> Vector<N, DP, ArrayStorage<N, DP, U1>>;
-}
-
-pub trait LinearizedSystemModel<N, DP, CP>: SystemModel<N, DP, CP>
-    where
-        N: Real,
-        DP: DimName,
-        CP: DimName,
-        <DP as DimName>::Value: Mul<typenum::U1>,
-        <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
-        <DP as DimName>::Value: Mul,
-        <<DP as DimName>::Value as Mul>::Output: ArrayLength<N>,
-        <CP as DimName>::Value: Mul<typenum::U1>,
-        <<CP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
-{
-    fn update_jacobians(&self, control: Vector<N, CP, ArrayStorage<N, CP, U1>>);
-}
+//pub trait SystemModel<N, DP, CP>: KalmanState<N, DP>
+//    where
+//        N: Real,
+//        DP: DimName,
+//        CP: DimName,
+//        <DP as DimName>::Value: Mul<typenum::U1>,
+//        <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+//        <DP as DimName>::Value: Mul,
+//        <<DP as DimName>::Value as Mul>::Output: ArrayLength<N>,
+//        <CP as DimName>::Value: Mul<typenum::U1>,
+//        <<CP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+//{
+//    // definition of state transition function
+//    fn f(&self, control: Vector<N, CP, ArrayStorage<N, CP, U1>>)
+//         -> Vector<N, DP, ArrayStorage<N, DP, U1>>;
+//}
+//
+//pub trait LinearizedSystemModel<N, DP, CP>: SystemModel<N, DP, CP>
+//where
+//    N: Real,
+//    DP: DimName,
+//    CP: DimName,
+//    <DP as DimName>::Value: Mul<typenum::U1>,
+//    <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+//    <DP as DimName>::Value: Mul,
+//    <<DP as DimName>::Value as Mul>::Output: ArrayLength<N>,
+//    <CP as DimName>::Value: Mul<typenum::U1>,
+//    <<CP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+//{
+//    fn update_jacobians(&self, control: Vector<N, CP, ArrayStorage<N, CP, U1>>);
+//}
 
 pub struct ConstantVelocity1DState
 {
@@ -565,26 +566,58 @@ impl ConstantVelocity1DState
     }
 }
 
-impl KalmanState<f32, na::dimension::U2> for ConstantVelocity1DState
+impl KalmanState for ConstantVelocity1DState
 {
-    // useful to tell the length of the state vector when we construct a filter
+    // useful to tell the length of the state vector when we construct a filter?
     type StateLength = na::dimension::U2;
+    type FloatType = f32;
 
-    fn x(&self) -> &Vector<f32, na::dimension::U2, ArrayStorage<f32, na::dimension::U2, U1>>
+    fn x(&self) -> &Vector<Self::FloatType, Self::StateLength, ArrayStorage<Self::FloatType, Self::StateLength, U1>>
     { &self.x }
 }
 
-// constant velocity model
-impl SystemModel<f32, na::dimension::U2, na::dimension::U0> for ConstantVelocity1DState
-{
-    fn f(&self, _control: Matrix<f32, na::dimension::U0, U1, ArrayStorage<f32, na::dimension::U0, U1>>)
-         -> Vector<f32, na::dimension::U2, ArrayStorage<f32, na::dimension::U2, U1>> {
-        let pos = *self.pos() + *self.vel();
-        let vel = *self.vel();
+//// constant velocity model
+//impl SystemModel<f32, na::dimension::U2, na::dimension::U0> for ConstantVelocity1DState
+//{
+//    fn f(&self, _control: Matrix<f32, na::dimension::U0, U1, ArrayStorage<f32, na::dimension::U0, U1>>)
+//         -> Vector<f32, na::dimension::U2, ArrayStorage<f32, na::dimension::U2, U1>> {
+//        let pos = *self.pos() + *self.vel();
+//        let vel = *self.vel();
+//
+//        na::Matrix2x1::new(
+//            pos,
+//            vel
+//        )
+//    }
+//}
 
-        na::Matrix2x1::new(
-            pos,
-            vel
-        )
+// create an ExtendedKalmanFilter given a KalmanState S
+pub struct ExtendedKalmanFilter<S>
+where
+    S: KalmanState,
+    <<S as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
+    <<<S as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<S as KalmanState>::FloatType>,
+    <<S as KalmanState>::StateLength as DimName>::Value: Mul,
+    <<<S as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<S as KalmanState>::FloatType>
+{
+    error_covariance_pre: Matrix<S::FloatType, S::StateLength, S::StateLength, ArrayStorage<S::FloatType, S::StateLength, S::StateLength>>,
+    error_covariance_post: Matrix<S::FloatType, S::StateLength, S::StateLength, ArrayStorage<S::FloatType, S::StateLength, S::StateLength>>
+}
+
+impl<S> ExtendedKalmanFilter<S>
+where
+    S: KalmanState,
+    <<S as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
+    <<<S as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<S as KalmanState>::FloatType>,
+    <<S as KalmanState>::StateLength as DimName>::Value: Mul,
+    <<<S as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<S as KalmanState>::FloatType>
+{
+    fn predict(&self/*, system model, control*/)
+    {
+
+    }
+    fn update(&self/*, observation model, measurement*/)
+    {
+
     }
 }
