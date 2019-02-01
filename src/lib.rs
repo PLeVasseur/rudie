@@ -516,23 +516,61 @@ where
     fn x(&self) -> &Vector<Self::FloatType, Self::StateLength, ArrayStorage<Self::FloatType, Self::StateLength, U1>>;
 }
 
-//pub trait SystemModel<N, DP, CP>: KalmanState<N, DP>
-//    where
-//        N: Real,
-//        DP: DimName,
-//        CP: DimName,
-//        <DP as DimName>::Value: Mul<typenum::U1>,
-//        <<DP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
-//        <DP as DimName>::Value: Mul,
-//        <<DP as DimName>::Value as Mul>::Output: ArrayLength<N>,
-//        <CP as DimName>::Value: Mul<typenum::U1>,
-//        <<CP as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<N>,
+// why would I need to re-assert that the StateType given satisfies the bounds given in KalmanState?
+// is it somehow possible to supply a type that doesn't satisfy the bounds in KalmanState?
+// don't think so, see below
+pub trait DummySystemModel
+{
+    type StateType: KalmanState;
+}
+
+pub struct DummyStruct {}
+
+pub struct DummyState {}
+
+// feel this should compile, since it should be verifiable that ConstantVelocity1DState
+// impls KalmanState
+// since ConstantVelocity1DState impls KalmanState, doesn't that imply that the bounds
+// in KalmanState are satisfied and don't need to be rewritten here?
+impl DummySystemModel for DummyStruct
+{
+    type StateType = ConstantVelocity1DState;
+}
+
+// doesn't compile, since DummyState doesn't impl KalmanState - this makes sense
+//impl DummySystemModel for DummyStruct
 //{
-//    // definition of state transition function
-//    fn f(&self, control: Vector<N, CP, ArrayStorage<N, CP, U1>>)
-//         -> Vector<N, DP, ArrayStorage<N, DP, U1>>;
+//    type StateType = DummyState;
 //}
-//
+
+pub trait ControlInput
+where
+    <Self as ControlInput>::ControlLength: DimName,
+    <<Self as ControlInput>::ControlLength as DimName>::Value: Mul<typenum::U1>,
+    <<<Self as ControlInput>::ControlLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<Self as ControlInput>::FloatType>,
+    <Self as ControlInput>::FloatType: Real
+{
+    // useful to tell the length of the control vector when we construct a filter
+    type ControlLength;
+    type FloatType;
+
+    fn u(&self) -> &Vector<Self::FloatType, Self::ControlLength, ArrayStorage<Self::FloatType, Self::ControlLength, U1>>;
+}
+
+pub trait SystemModel
+where
+    <<<Self as SystemModel>::StateType as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
+    <<<<Self as SystemModel>::StateType as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<<Self as SystemModel>::StateType as KalmanState>::FloatType>,
+    <<<Self as SystemModel>::ControlType as ControlInput>::ControlLength as DimName>::Value: Mul<typenum::U1>,
+    <<<<Self as SystemModel>::ControlType as ControlInput>::ControlLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<<Self as SystemModel>::ControlType as ControlInput>::FloatType>
+{
+    type StateType: KalmanState;
+    type ControlType: ControlInput;
+
+    // definition of state transition function
+    fn f(&self, control: Self::ControlType) -> Self::StateType;
+}
+
 //pub trait LinearizedSystemModel<N, DP, CP>: SystemModel<N, DP, CP>
 //where
 //    N: Real,
@@ -600,6 +638,9 @@ where
     <<S as KalmanState>::StateLength as DimName>::Value: Mul,
     <<<S as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<S as KalmanState>::FloatType>
 {
+    state_pre: S,
+    state_post: S,
+
     error_covariance_pre: Matrix<S::FloatType, S::StateLength, S::StateLength, ArrayStorage<S::FloatType, S::StateLength, S::StateLength>>,
     error_covariance_post: Matrix<S::FloatType, S::StateLength, S::StateLength, ArrayStorage<S::FloatType, S::StateLength, S::StateLength>>
 }
@@ -610,9 +651,11 @@ where
     <<S as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
     <<<S as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<S as KalmanState>::FloatType>,
     <<S as KalmanState>::StateLength as DimName>::Value: Mul,
-    <<<S as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<S as KalmanState>::FloatType>
+    <<<S as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<S as KalmanState>::FloatType>,
+
+    //<<<impl SystemModel as SystemModel>::StateType as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
 {
-    fn predict(&self/*, system model, control*/)
+    fn predict(&self/*, system_model: impl SystemModel , control*/)
     {
 
     }

@@ -1,6 +1,13 @@
 extern crate rudie;
 
 #[test]
+fn single_predict_dummy_control_f64_ekf() {
+    use rudie::ExtendedKalmanFilter;
+
+
+}
+
+#[test]
 fn single_predict_dummy_control_f64() {
     use rudie::OpenCVKalmanFilter;
     use rudie::na::{U0, U1, U2, Vector, ArrayStorage, zero};
