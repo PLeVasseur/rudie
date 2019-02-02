@@ -516,33 +516,6 @@ where
     fn x(&self) -> &Vector<Self::FloatType, Self::StateLength, ArrayStorage<Self::FloatType, Self::StateLength, U1>>;
 }
 
-// why would I need to re-assert that the StateType given satisfies the bounds given in KalmanState?
-// is it somehow possible to supply a type that doesn't satisfy the bounds in KalmanState?
-// don't think so, see below
-pub trait DummySystemModel
-{
-    type StateType: KalmanState;
-}
-
-pub struct DummyStruct {}
-
-pub struct DummyState {}
-
-// feel this should compile, since it should be verifiable that ConstantVelocity1DState
-// impls KalmanState
-// since ConstantVelocity1DState impls KalmanState, doesn't that imply that the bounds
-// in KalmanState are satisfied and don't need to be rewritten here?
-impl DummySystemModel for DummyStruct
-{
-    type StateType = ConstantVelocity1DState;
-}
-
-// doesn't compile, since DummyState doesn't impl KalmanState - this makes sense
-//impl DummySystemModel for DummyStruct
-//{
-//    type StateType = DummyState;
-//}
-
 pub trait ControlInput
 where
     <Self as ControlInput>::ControlLength: DimName,
@@ -568,7 +541,47 @@ where
     type ControlType: ControlInput;
 
     // definition of state transition function
-    fn f(&self, control: Self::ControlType) -> Self::StateType;
+    fn f(&self, state: Self::StateType, control: Self::ControlType) -> Self::StateType;
+}
+
+// create an ExtendedKalmanFilter given a KalmanState S
+pub struct ExtendedKalmanFilter<S>
+where
+    S: KalmanState,
+    <<S as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
+    <<<S as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<S as KalmanState>::FloatType>,
+    <<S as KalmanState>::StateLength as DimName>::Value: Mul,
+    <<<S as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<S as KalmanState>::FloatType>
+{
+    state_pre: S,
+    state_post: S,
+
+    error_covariance_pre: Matrix<S::FloatType, S::StateLength, S::StateLength, ArrayStorage<S::FloatType, S::StateLength, S::StateLength>>,
+    error_covariance_post: Matrix<S::FloatType, S::StateLength, S::StateLength, ArrayStorage<S::FloatType, S::StateLength, S::StateLength>>
+}
+
+impl<S> ExtendedKalmanFilter<S>
+where
+    S: KalmanState,
+    <<S as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
+    <<<S as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<S as KalmanState>::FloatType>,
+    <<S as KalmanState>::StateLength as DimName>::Value: Mul,
+    <<<S as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<S as KalmanState>::FloatType>
+{
+    fn predict<F, U>(&mut self, system_model: F, control: <F as SystemModel>::ControlType)
+    where
+        F: SystemModel<StateType = S>,
+        <<<F as SystemModel>::StateType as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
+        <<<<F as SystemModel>::StateType as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<<F as SystemModel>::StateType as KalmanState>::FloatType>,
+        <<<F as SystemModel>::ControlType as ControlInput>::ControlLength as DimName>::Value: Mul<typenum::U1>,
+        <<<<F as SystemModel>::ControlType as ControlInput>::ControlLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<<F as SystemModel>::ControlType as ControlInput>::FloatType>,
+    {
+        self.state_pre = system_model.f(self.state_post, control);
+    }
+    fn update(&self/*, observation model, measurement*/)
+    {
+
+    }
 }
 
 //pub trait LinearizedSystemModel<N, DP, CP>: SystemModel<N, DP, CP>
@@ -628,39 +641,3 @@ impl KalmanState for ConstantVelocity1DState
 //        )
 //    }
 //}
-
-// create an ExtendedKalmanFilter given a KalmanState S
-pub struct ExtendedKalmanFilter<S>
-where
-    S: KalmanState,
-    <<S as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
-    <<<S as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<S as KalmanState>::FloatType>,
-    <<S as KalmanState>::StateLength as DimName>::Value: Mul,
-    <<<S as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<S as KalmanState>::FloatType>
-{
-    state_pre: S,
-    state_post: S,
-
-    error_covariance_pre: Matrix<S::FloatType, S::StateLength, S::StateLength, ArrayStorage<S::FloatType, S::StateLength, S::StateLength>>,
-    error_covariance_post: Matrix<S::FloatType, S::StateLength, S::StateLength, ArrayStorage<S::FloatType, S::StateLength, S::StateLength>>
-}
-
-impl<S> ExtendedKalmanFilter<S>
-where
-    S: KalmanState,
-    <<S as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
-    <<<S as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<S as KalmanState>::FloatType>,
-    <<S as KalmanState>::StateLength as DimName>::Value: Mul,
-    <<<S as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<S as KalmanState>::FloatType>,
-
-    //<<<impl SystemModel as SystemModel>::StateType as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
-{
-    fn predict(&self/*, system_model: impl SystemModel , control*/)
-    {
-
-    }
-    fn update(&self/*, observation model, measurement*/)
-    {
-
-    }
-}
