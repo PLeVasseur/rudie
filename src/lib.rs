@@ -541,7 +541,7 @@ where
     type ControlType: ControlInput;
 
     // definition of state transition function
-    fn f(&self, state: Self::StateType, control: Self::ControlType) -> Self::StateType;
+    fn f(&self, state: &Self::StateType, control: Self::ControlType) -> Self::StateType;
 }
 
 // create an ExtendedKalmanFilter given a KalmanState S
@@ -576,7 +576,7 @@ where
         <<<F as SystemModel>::ControlType as ControlInput>::ControlLength as DimName>::Value: Mul<typenum::U1>,
         <<<<F as SystemModel>::ControlType as ControlInput>::ControlLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<<F as SystemModel>::ControlType as ControlInput>::FloatType>,
     {
-        self.state_pre = system_model.f(self.state_post, control);
+        self.state_pre = system_model.f(&self.state_post, control);
     }
     fn update(&self/*, observation model, measurement*/)
     {
