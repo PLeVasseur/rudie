@@ -530,57 +530,56 @@ where
     fn u(&self) -> &Vector<Self::FloatType, Self::ControlLength, ArrayStorage<Self::FloatType, Self::ControlLength, U1>>;
 }
 
+#[allow(non_snake_case)]
 pub trait SystemModel
 where
     <<<Self as SystemModel>::StateType as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
     <<<<Self as SystemModel>::StateType as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<<Self as SystemModel>::StateType as KalmanState>::FloatType>,
     <<<Self as SystemModel>::ControlType as ControlInput>::ControlLength as DimName>::Value: Mul<typenum::U1>,
-    <<<<Self as SystemModel>::ControlType as ControlInput>::ControlLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<<Self as SystemModel>::ControlType as ControlInput>::FloatType>
+    <<<<Self as SystemModel>::ControlType as ControlInput>::ControlLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<<Self as SystemModel>::ControlType as ControlInput>::FloatType>,
+
+    <<<Self as SystemModel>::StateType as KalmanState>::StateLength as DimName>::Value: Mul,
+    <<<<Self as SystemModel>::StateType as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<<Self as SystemModel>::StateType as KalmanState>::FloatType>
 {
     type StateType: KalmanState;
     type ControlType: ControlInput;
 
     // definition of state transition function
-    fn f(&self, state: &Self::StateType, control: Self::ControlType) -> Self::StateType;
-}
+    fn f(&self, state: &Self::StateType, control: &Self::ControlType) -> Self::StateType;
 
-// create an ExtendedKalmanFilter given a KalmanState S
-pub struct ExtendedKalmanFilter<S>
-where
-    S: KalmanState,
-    <<S as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
-    <<<S as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<S as KalmanState>::FloatType>,
-    <<S as KalmanState>::StateLength as DimName>::Value: Mul,
-    <<<S as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<S as KalmanState>::FloatType>
-{
-    state_pre: S,
-    state_post: S,
+    fn update_jacobians(&self, _state: &Self::StateType, _control: &Self::ControlType)
+    {}
 
-    error_covariance_pre: Matrix<S::FloatType, S::StateLength, S::StateLength, ArrayStorage<S::FloatType, S::StateLength, S::StateLength>>,
-    error_covariance_post: Matrix<S::FloatType, S::StateLength, S::StateLength, ArrayStorage<S::FloatType, S::StateLength, S::StateLength>>
-}
+    fn F(&self) -> Matrix<<<Self as SystemModel>::StateType as KalmanState>::FloatType,
+                          <<Self as SystemModel>::StateType as KalmanState>::StateLength,
+                          <<Self as SystemModel>::StateType as KalmanState>::StateLength,
+                            ArrayStorage<<<Self as SystemModel>::StateType as KalmanState>::FloatType,
+                                         <<Self as SystemModel>::StateType as KalmanState>::StateLength,
+                                         <<Self as SystemModel>::StateType as KalmanState>::StateLength>>;
 
-impl<S> ExtendedKalmanFilter<S>
-where
-    S: KalmanState,
-    <<S as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
-    <<<S as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<S as KalmanState>::FloatType>,
-    <<S as KalmanState>::StateLength as DimName>::Value: Mul,
-    <<<S as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<S as KalmanState>::FloatType>
-{
-    fn predict<F, U>(&mut self, system_model: F, control: <F as SystemModel>::ControlType)
-    where
-        F: SystemModel<StateType = S>,
-        <<<F as SystemModel>::StateType as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
-        <<<<F as SystemModel>::StateType as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<<F as SystemModel>::StateType as KalmanState>::FloatType>,
-        <<<F as SystemModel>::ControlType as ControlInput>::ControlLength as DimName>::Value: Mul<typenum::U1>,
-        <<<<F as SystemModel>::ControlType as ControlInput>::ControlLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<<F as SystemModel>::ControlType as ControlInput>::FloatType>,
+    fn W(&self) -> Matrix<<<Self as SystemModel>::StateType as KalmanState>::FloatType,
+                          <<Self as SystemModel>::StateType as KalmanState>::StateLength,
+                          <<Self as SystemModel>::StateType as KalmanState>::StateLength,
+                            ArrayStorage<<<Self as SystemModel>::StateType as KalmanState>::FloatType,
+                                         <<Self as SystemModel>::StateType as KalmanState>::StateLength,
+                                         <<Self as SystemModel>::StateType as KalmanState>::StateLength>>;
+
+    fn getCovariance(&self) -> Matrix<<<Self as SystemModel>::StateType as KalmanState>::FloatType,
+                                      <<Self as SystemModel>::StateType as KalmanState>::StateLength,
+                                      <<Self as SystemModel>::StateType as KalmanState>::StateLength,
+                                        ArrayStorage<<<Self as SystemModel>::StateType as KalmanState>::FloatType,
+                                                     <<Self as SystemModel>::StateType as KalmanState>::StateLength,
+                                                     <<Self as SystemModel>::StateType as KalmanState>::StateLength>>
     {
-        self.state_pre = system_model.f(&self.state_post, control);
+        type blah = na::MatrixN<<<Self as SystemModel>::StateType as KalmanState>::FloatType, <<Self as SystemModel>::StateType as KalmanState>::StateLength>;
+        blah::identity()
     }
-    fn update(&self/*, observation model, measurement*/)
-    {
 
+    fn dummy(&self)
+    {
+        na::Matrix3::<f64>::identity();
+        type blah = na::MatrixN<f64, na::dimension::U3>;
+        blah::identity();
     }
 }
 
@@ -598,6 +597,55 @@ where
 //{
 //    fn update_jacobians(&self, control: Vector<N, CP, ArrayStorage<N, CP, U1>>);
 //}
+
+// create an ExtendedKalmanFilter given a KalmanState S
+#[allow(non_snake_case)]
+pub struct ExtendedKalmanFilter<S>
+where
+    S: KalmanState + Copy + Clone,
+    <<S as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
+    <<<S as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<S as KalmanState>::FloatType>,
+    <<S as KalmanState>::StateLength as DimName>::Value: Mul,
+    <<<S as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<S as KalmanState>::FloatType>,
+{
+    x_pre: S,
+    x_post: S,
+
+    P_pre: Matrix<S::FloatType, S::StateLength, S::StateLength, ArrayStorage<S::FloatType, S::StateLength, S::StateLength>>,
+    P_post: Matrix<S::FloatType, S::StateLength, S::StateLength, ArrayStorage<S::FloatType, S::StateLength, S::StateLength>>
+}
+
+impl<S> ExtendedKalmanFilter<S>
+where
+    S: KalmanState + Copy + Clone,
+    <<S as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
+    <<<S as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<S as KalmanState>::FloatType>,
+    <<S as KalmanState>::StateLength as DimName>::Value: Mul,
+    <<<S as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<S as KalmanState>::FloatType>
+{
+    fn predict<F, U>(&mut self, s: F, control: <F as SystemModel>::ControlType) -> S
+    where
+        F: SystemModel<StateType = S>,
+        <<<F as SystemModel>::StateType as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
+        <<<<F as SystemModel>::StateType as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<<F as SystemModel>::StateType as KalmanState>::FloatType>,
+        <<<F as SystemModel>::ControlType as ControlInput>::ControlLength as DimName>::Value: Mul<typenum::U1>,
+        <<<<F as SystemModel>::ControlType as ControlInput>::ControlLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<<F as SystemModel>::ControlType as ControlInput>::FloatType>,
+    {
+        s.update_jacobians(&self.x_post, &control);
+
+        // predict state
+        self.x_pre = s.f(&self.x_post, &control);
+
+        self.P_pre = ( &s.F() * &self.P_post * &s.F().transpose() ) + ( s.W() * s.getCovariance() * s.W().transpose() );
+
+        // return state prediction
+        self.x_pre.clone()
+    }
+    fn update(&self/*, observation model, measurement*/)
+    {
+
+    }
+}
 
 pub struct ConstantVelocity1DState
 {
