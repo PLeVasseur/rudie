@@ -510,8 +510,8 @@ where
     <Self as KalmanState>::FloatType: Real
 {
     // useful to tell the length of the state vector when we construct a filter
-    type StateLength;
-    type FloatType;
+    type StateLength: DimName;
+    type FloatType: Real;
 
     fn x(&self) -> &Vector<Self::FloatType, Self::StateLength, ArrayStorage<Self::FloatType, Self::StateLength, U1>>;
 }
@@ -524,8 +524,8 @@ where
     <Self as ControlInput>::FloatType: Real
 {
     // useful to tell the length of the control vector when we construct a filter
-    type ControlLength;
-    type FloatType;
+    type ControlLength: DimName;
+    type FloatType: Real;
 
     fn u(&self) -> &Vector<Self::FloatType, Self::ControlLength, ArrayStorage<Self::FloatType, Self::ControlLength, U1>>;
 }
@@ -569,18 +569,61 @@ where
                                       <<Self as SystemModel>::StateType as KalmanState>::StateLength,
                                         ArrayStorage<<<Self as SystemModel>::StateType as KalmanState>::FloatType,
                                                      <<Self as SystemModel>::StateType as KalmanState>::StateLength,
-                                                     <<Self as SystemModel>::StateType as KalmanState>::StateLength>>
-    {
-        type blah = na::MatrixN<<<Self as SystemModel>::StateType as KalmanState>::FloatType, <<Self as SystemModel>::StateType as KalmanState>::StateLength>;
-        blah::identity()
-    }
+                                                     <<Self as SystemModel>::StateType as KalmanState>::StateLength>>;
+}
 
-    fn dummy(&self)
-    {
-        na::Matrix3::<f64>::identity();
-        type blah = na::MatrixN<f64, na::dimension::U3>;
-        blah::identity();
-    }
+pub trait MeasurementInput
+
+{
+    type MeasurementLength: DimName;
+    type FloatType: Real;
+
+
+}
+
+#[allow(non_snake_case)]
+pub trait MeasurementModel
+where
+    <<<Self as MeasurementModel>::StateType as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
+    <<<<Self as MeasurementModel>::StateType as KalmanState>::StateLength as DimName>::Value as Mul<typenum::U1>>::Output: ArrayLength<<<Self as MeasurementModel>::StateType as KalmanState>::FloatType>,
+
+    <<<Self as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength as DimName>::Value: Mul<<<<Self as MeasurementModel>::StateType as KalmanState>::StateLength as DimName>::Value>,
+    <<<<Self as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength as DimName>::Value as Mul<<<<Self as MeasurementModel>::StateType as KalmanState>::StateLength as DimName>::Value>>::Output: ArrayLength<<<Self as MeasurementModel>::StateType as KalmanState>::FloatType>,
+
+    <<<Self as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength as DimName>::Value: Mul,
+    <<<<Self as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength as DimName>::Value as Mul>::Output: ArrayLength<<<Self as MeasurementModel>::StateType as KalmanState>::FloatType>,
+
+    <<<Self as MeasurementModel>::StateType as KalmanState>::StateLength as DimName>::Value: Mul,
+    <<<<Self as MeasurementModel>::StateType as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<<Self as MeasurementModel>::StateType as KalmanState>::FloatType>
+{
+    type StateType: KalmanState;
+    type MeasurementType: MeasurementInput;
+
+    fn h(&self, state: &Self::StateType) -> Self::MeasurementType;
+
+    fn update_jacobians(&self, _state: &Self::StateType)
+    {}
+
+    fn H(&self) -> Matrix<<<Self as MeasurementModel>::StateType as KalmanState>::FloatType,
+        <<Self as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength,
+        <<Self as MeasurementModel>::StateType as KalmanState>::StateLength,
+        ArrayStorage<<<Self as MeasurementModel>::StateType as KalmanState>::FloatType,
+            <<Self as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength,
+            <<Self as MeasurementModel>::StateType as KalmanState>::StateLength>>;
+
+    fn V(&self) -> Matrix<<<Self as MeasurementModel>::StateType as KalmanState>::FloatType,
+        <<Self as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength,
+        <<Self as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength,
+        ArrayStorage<<<Self as MeasurementModel>::StateType as KalmanState>::FloatType,
+            <<Self as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength,
+            <<Self as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength>>;
+
+    fn getCovariance(&self) -> Matrix<<<Self as MeasurementModel>::StateType as KalmanState>::FloatType,
+        <<Self as MeasurementModel>::StateType as KalmanState>::StateLength,
+        <<Self as MeasurementModel>::StateType as KalmanState>::StateLength,
+        ArrayStorage<<<Self as MeasurementModel>::StateType as KalmanState>::FloatType,
+            <<Self as MeasurementModel>::StateType as KalmanState>::StateLength,
+            <<Self as MeasurementModel>::StateType as KalmanState>::StateLength>>;
 }
 
 //pub trait LinearizedSystemModel<N, DP, CP>: SystemModel<N, DP, CP>
@@ -623,7 +666,7 @@ where
     <<S as KalmanState>::StateLength as DimName>::Value: Mul,
     <<<S as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<S as KalmanState>::FloatType>
 {
-    fn predict<F, U>(&mut self, s: F, control: <F as SystemModel>::ControlType) -> S
+    fn predict<F>(&mut self, s: F, control: <F as SystemModel>::ControlType) -> S
     where
         F: SystemModel<StateType = S>,
         <<<F as SystemModel>::StateType as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
@@ -641,9 +684,36 @@ where
         // return state prediction
         self.x_pre.clone()
     }
-    fn update(&self/*, observation model, measurement*/)
-    {
+    fn update<H>(&self, m: H, measurement: <H as MeasurementModel>::MeasurementType)// -> S
+    where
+        H: MeasurementModel<StateType = S>,
+        <<<H as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength as DimName>::Value: Mul<<<S as KalmanState>::StateLength as DimName>::Value>,
+        <<<<H as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength as DimName>::Value as Mul<<<S as KalmanState>::StateLength as DimName>::Value>>::Output: ArrayLength<<S as KalmanState>::FloatType>,
+        <<<H as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength as DimName>::Value: Mul,
+        <<<<H as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength as DimName>::Value as Mul>::Output: ArrayLength<<S as KalmanState>::FloatType>,
 
+        <<S as KalmanState>::StateLength as DimName>::Value: Mul<<<<H as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength as DimName>::Value>,
+        <<<S as KalmanState>::StateLength as DimName>::Value as Mul<<<<H as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength as DimName>::Value>>::Output: ArrayLength<<S as KalmanState>::FloatType>,
+        na::constraint::ShapeConstraint: na::constraint::DimEq<<<H as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength, <S as KalmanState>::StateLength>,
+        na::constraint::ShapeConstraint: na::constraint::DimEq<<S as KalmanState>::StateLength, <<H as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength>
+    {
+        m.update_jacobians(&self.x_pre);
+
+        let s = m.H() * ( &self.P_pre * m.H().transpose() ) + ( m.V() * m.getCovariance() * m.V().transpose() );
+
+//        let k = &self.P_pre * m.H().transpose() * s.inverse();
+
+//        // temp1 = H*P'(k)
+//        let temp1 = &self.measurement_matrix * &self.error_cov_pre;
+//
+//
+//        let svd = SVD::new(self.innov_cov.clone(), true, true);
+//
+//        // temp2 = inv(S)*temp1 = Kt(k)
+//        let temp2 = svd.solve(&temp1, N::default_epsilon());
+//
+//        // K(k)
+//        self.gain = temp2.transpose();
     }
 }
 
