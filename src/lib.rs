@@ -502,6 +502,11 @@ impl<N, DP, MP, CP> fmt::Debug for OpenCVKalmanFilter<N, DP, MP, CP>
     }
 }
 
+pub type Jacobian<F,N,M> = Matrix<F, N, M, ArrayStorage<F, N, M>>;
+pub type Covariance<F,N,M> = Matrix<F, N, M, ArrayStorage<F, N, M>>;
+pub type State<F,N> = Vector<F, N, ArrayStorage<F, N, U1>>;
+pub type Control<F,N> = Vector<F, N, ArrayStorage<F, N, U1>>;
+
 pub trait KalmanState
 where
     <Self as KalmanState>::StateLength: DimName,
@@ -550,26 +555,17 @@ where
     fn update_jacobians(&self, _state: &Self::StateType, _control: &Self::ControlType)
     {}
 
-    fn F(&self) -> Matrix<<<Self as SystemModel>::StateType as KalmanState>::FloatType,
-                          <<Self as SystemModel>::StateType as KalmanState>::StateLength,
-                          <<Self as SystemModel>::StateType as KalmanState>::StateLength,
-                            ArrayStorage<<<Self as SystemModel>::StateType as KalmanState>::FloatType,
-                                         <<Self as SystemModel>::StateType as KalmanState>::StateLength,
-                                         <<Self as SystemModel>::StateType as KalmanState>::StateLength>>;
+    fn F(&self) -> Jacobian<<Self::StateType as KalmanState>::FloatType,
+                          <Self::StateType as KalmanState>::StateLength,
+                          <Self::StateType as KalmanState>::StateLength>;
 
-    fn W(&self) -> Matrix<<<Self as SystemModel>::StateType as KalmanState>::FloatType,
-                          <<Self as SystemModel>::StateType as KalmanState>::StateLength,
-                          <<Self as SystemModel>::StateType as KalmanState>::StateLength,
-                            ArrayStorage<<<Self as SystemModel>::StateType as KalmanState>::FloatType,
-                                         <<Self as SystemModel>::StateType as KalmanState>::StateLength,
-                                         <<Self as SystemModel>::StateType as KalmanState>::StateLength>>;
+    fn W(&self) -> Jacobian<<Self::StateType as KalmanState>::FloatType,
+                          <Self::StateType as KalmanState>::StateLength,
+                          <Self::StateType as KalmanState>::StateLength>;
 
-    fn getCovariance(&self) -> Matrix<<<Self as SystemModel>::StateType as KalmanState>::FloatType,
-                                      <<Self as SystemModel>::StateType as KalmanState>::StateLength,
-                                      <<Self as SystemModel>::StateType as KalmanState>::StateLength,
-                                        ArrayStorage<<<Self as SystemModel>::StateType as KalmanState>::FloatType,
-                                                     <<Self as SystemModel>::StateType as KalmanState>::StateLength,
-                                                     <<Self as SystemModel>::StateType as KalmanState>::StateLength>>;
+    fn getCovariance(&self) -> Covariance<<Self::StateType as KalmanState>::FloatType,
+                                      <Self::StateType as KalmanState>::StateLength,
+                                      <Self::StateType as KalmanState>::StateLength>;
 }
 
 pub trait MeasurementInput
@@ -604,26 +600,17 @@ where
     fn update_jacobians(&self, _state: &Self::StateType)
     {}
 
-    fn H(&self) -> Matrix<<<Self as MeasurementModel>::StateType as KalmanState>::FloatType,
-        <<Self as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength,
-        <<Self as MeasurementModel>::StateType as KalmanState>::StateLength,
-        ArrayStorage<<<Self as MeasurementModel>::StateType as KalmanState>::FloatType,
-            <<Self as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength,
-            <<Self as MeasurementModel>::StateType as KalmanState>::StateLength>>;
+    fn H(&self) -> Jacobian<<Self::StateType as KalmanState>::FloatType,
+        <Self::MeasurementType as MeasurementInput>::MeasurementLength,
+        <Self::StateType as KalmanState>::StateLength>;
 
-    fn V(&self) -> Matrix<<<Self as MeasurementModel>::StateType as KalmanState>::FloatType,
-        <<Self as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength,
-        <<Self as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength,
-        ArrayStorage<<<Self as MeasurementModel>::StateType as KalmanState>::FloatType,
-            <<Self as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength,
-            <<Self as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength>>;
+    fn V(&self) -> Jacobian<<Self::StateType as KalmanState>::FloatType,
+        <Self::MeasurementType as MeasurementInput>::MeasurementLength,
+        <Self::MeasurementType as MeasurementInput>::MeasurementLength>;
 
-    fn getCovariance(&self) -> Matrix<<<Self as MeasurementModel>::StateType as KalmanState>::FloatType,
-        <<Self as MeasurementModel>::StateType as KalmanState>::StateLength,
-        <<Self as MeasurementModel>::StateType as KalmanState>::StateLength,
-        ArrayStorage<<<Self as MeasurementModel>::StateType as KalmanState>::FloatType,
-            <<Self as MeasurementModel>::StateType as KalmanState>::StateLength,
-            <<Self as MeasurementModel>::StateType as KalmanState>::StateLength>>;
+    fn getCovariance(&self) -> Jacobian<<Self::StateType as KalmanState>::FloatType,
+        <Self::StateType as KalmanState>::StateLength,
+        <Self::StateType as KalmanState>::StateLength>;
 }
 
 //pub trait LinearizedSystemModel<N, DP, CP>: SystemModel<N, DP, CP>
@@ -666,7 +653,7 @@ where
     <<S as KalmanState>::StateLength as DimName>::Value: Mul,
     <<<S as KalmanState>::StateLength as DimName>::Value as Mul>::Output: ArrayLength<<S as KalmanState>::FloatType>
 {
-    fn predict<F>(&mut self, s: F, control: <F as SystemModel>::ControlType) -> S
+    pub fn predict<F>(&mut self, s: F, control: <F as SystemModel>::ControlType) -> S
     where
         F: SystemModel<StateType = S>,
         <<<F as SystemModel>::StateType as KalmanState>::StateLength as DimName>::Value: Mul<typenum::U1>,
@@ -684,7 +671,7 @@ where
         // return state prediction
         self.x_pre.clone()
     }
-    fn update<H>(&self, m: H, measurement: <H as MeasurementModel>::MeasurementType)// -> S
+    pub fn update<H>(&self, m: H, measurement: <H as MeasurementModel>::MeasurementType)// -> S
     where
         H: MeasurementModel<StateType = S>,
         <<<H as MeasurementModel>::MeasurementType as MeasurementInput>::MeasurementLength as DimName>::Value: Mul<<<S as KalmanState>::StateLength as DimName>::Value>,
@@ -737,7 +724,6 @@ impl ConstantVelocity1DState
 
 impl KalmanState for ConstantVelocity1DState
 {
-    // useful to tell the length of the state vector when we construct a filter?
     type StateLength = na::dimension::U2;
     type FloatType = f32;
 
@@ -745,17 +731,45 @@ impl KalmanState for ConstantVelocity1DState
     { &self.x }
 }
 
+pub struct DummyControl
+{
+    x: Vector<f32, na::dimension::U0, ArrayStorage<f32, na::dimension::U0, U1>>
+}
+
+impl ControlInput for DummyControl
+{
+    type ControlLength = na::dimension::U0;
+    type FloatType = f32;
+
+    fn u(&self) -> &Vector<Self::FloatType, Self::ControlLength, ArrayStorage<Self::FloatType, Self::ControlLength, U1>>
+    { &self.x }
+}
+
 //// constant velocity model
-//impl SystemModel<f32, na::dimension::U2, na::dimension::U0> for ConstantVelocity1DState
+//impl SystemModel for ConstantVelocity1DState
 //{
-//    fn f(&self, _control: Matrix<f32, na::dimension::U0, U1, ArrayStorage<f32, na::dimension::U0, U1>>)
-//         -> Vector<f32, na::dimension::U2, ArrayStorage<f32, na::dimension::U2, U1>> {
-//        let pos = *self.pos() + *self.vel();
-//        let vel = *self.vel();
+//    type StateType = ConstantVelocity1DState;
+//    type ControlType = DummyControl;
+//
+//    fn f(&self, state: &Self::StateType, control: &Self::ControlType) -> Self::StateType{
+//        let pos = *state.pos() + *state.vel();
+//        let vel = *state.vel();
 //
 //        na::Matrix2x1::new(
 //            pos,
 //            vel
 //        )
 //    }
+//
+//    fn F(&self) -> Jacobian<<Self::StateType as KalmanState>::FloatType,
+//        <<Self as SystemModel>::StateType as KalmanState>::StateLength,
+//        <<Self as SystemModel>::StateType as KalmanState>::StateLength>;
+//
+//    fn W(&self) -> Jacobian<<Self::StateType as KalmanState>::FloatType,
+//        <Self::StateType as KalmanState>::StateLength,
+//        <Self::StateType as KalmanState>::StateLength>
+//
+//    fn getCovariance(&self) -> Covariance<<Self::StateType as KalmanState>::FloatType,
+//        <Self::StateType as KalmanState>::StateLength,
+//        <Self::StateType as KalmanState>::StateLength>;
 //}
