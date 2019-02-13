@@ -556,16 +556,26 @@ where
     {}
 
     fn F(&self) -> Jacobian<<Self::StateType as KalmanState>::FloatType,
-                          <Self::StateType as KalmanState>::StateLength,
-                          <Self::StateType as KalmanState>::StateLength>;
+                            <Self::StateType as KalmanState>::StateLength,
+                            <Self::StateType as KalmanState>::StateLength>
+    {
+        na::MatrixMN::<<Self::StateType as KalmanState>::FloatType,
+                       <Self::StateType as KalmanState>::StateLength,
+                       <Self::StateType as KalmanState>::StateLength>::identity()
+    }
 
     fn W(&self) -> Jacobian<<Self::StateType as KalmanState>::FloatType,
-                          <Self::StateType as KalmanState>::StateLength,
-                          <Self::StateType as KalmanState>::StateLength>;
+                            <Self::StateType as KalmanState>::StateLength,
+                            <Self::StateType as KalmanState>::StateLength>
+    {
+        na::MatrixMN::<<Self::StateType as KalmanState>::FloatType,
+                       <Self::StateType as KalmanState>::StateLength,
+                       <Self::StateType as KalmanState>::StateLength>::identity()
+    }
 
     fn getCovariance(&self) -> Covariance<<Self::StateType as KalmanState>::FloatType,
-                                      <Self::StateType as KalmanState>::StateLength,
-                                      <Self::StateType as KalmanState>::StateLength>;
+                                          <Self::StateType as KalmanState>::StateLength,
+                                          <Self::StateType as KalmanState>::StateLength>;
 }
 
 pub trait MeasurementInput
@@ -601,12 +611,22 @@ where
     {}
 
     fn H(&self) -> Jacobian<<Self::StateType as KalmanState>::FloatType,
-        <Self::MeasurementType as MeasurementInput>::MeasurementLength,
-        <Self::StateType as KalmanState>::StateLength>;
+                            <Self::MeasurementType as MeasurementInput>::MeasurementLength,
+                            <Self::StateType as KalmanState>::StateLength>
+    {
+        na::MatrixMN::<<Self::StateType as KalmanState>::FloatType,
+                       <Self::MeasurementType as MeasurementInput>::MeasurementLength,
+                       <Self::StateType as KalmanState>::StateLength>::identity()
+    }
 
     fn V(&self) -> Jacobian<<Self::StateType as KalmanState>::FloatType,
-        <Self::MeasurementType as MeasurementInput>::MeasurementLength,
-        <Self::MeasurementType as MeasurementInput>::MeasurementLength>;
+                            <Self::MeasurementType as MeasurementInput>::MeasurementLength,
+                            <Self::MeasurementType as MeasurementInput>::MeasurementLength>
+    {
+        na::MatrixMN::<<Self::StateType as KalmanState>::FloatType,
+                       <Self::MeasurementType as MeasurementInput>::MeasurementLength,
+                       <Self::MeasurementType as MeasurementInput>::MeasurementLength>::identity()
+    }
 
     fn getCovariance(&self) -> Jacobian<<Self::StateType as KalmanState>::FloatType,
         <Self::StateType as KalmanState>::StateLength,
@@ -745,7 +765,7 @@ impl ControlInput for DummyControl
     { &self.x }
 }
 
-//// constant velocity model
+// constant velocity model
 //impl SystemModel for ConstantVelocity1DState
 //{
 //    type StateType = ConstantVelocity1DState;
@@ -760,14 +780,6 @@ impl ControlInput for DummyControl
 //            vel
 //        )
 //    }
-//
-//    fn F(&self) -> Jacobian<<Self::StateType as KalmanState>::FloatType,
-//        <<Self as SystemModel>::StateType as KalmanState>::StateLength,
-//        <<Self as SystemModel>::StateType as KalmanState>::StateLength>;
-//
-//    fn W(&self) -> Jacobian<<Self::StateType as KalmanState>::FloatType,
-//        <Self::StateType as KalmanState>::StateLength,
-//        <Self::StateType as KalmanState>::StateLength>
 //
 //    fn getCovariance(&self) -> Covariance<<Self::StateType as KalmanState>::FloatType,
 //        <Self::StateType as KalmanState>::StateLength,
